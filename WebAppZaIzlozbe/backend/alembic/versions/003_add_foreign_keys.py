@@ -1,3 +1,11 @@
+"""Dodavanje foreign key-eva
+
+Revision ID: 003
+Revises: 002
+Create Date: 2024-01-01
+
+Treća migracija - dodaje foreign key constraints
+"""
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
@@ -9,6 +17,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Foreign keys za izlozbe
     op.create_foreign_key(
         'fk_izlozbe_lokacija',
         'izlozbe', 'lokacije',
@@ -23,6 +32,7 @@ def upgrade() -> None:
         ondelete='SET NULL'
     )
     
+    # Foreign keys za prijave
     op.create_foreign_key(
         'fk_prijave_korisnik',
         'prijave', 'korisnici',

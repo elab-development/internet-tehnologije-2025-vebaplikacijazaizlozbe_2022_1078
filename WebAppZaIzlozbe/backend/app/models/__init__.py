@@ -1,3 +1,6 @@
+"""
+Models paket - SQLAlchemy modeli
+"""
 from app.models.korisnik import Korisnik
 from app.models.lokacija import Lokacija
 from app.models.slika import Slika

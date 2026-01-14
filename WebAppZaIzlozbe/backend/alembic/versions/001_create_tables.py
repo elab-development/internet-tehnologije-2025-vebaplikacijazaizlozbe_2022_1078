@@ -1,3 +1,11 @@
+"""Kreiranje svih tabela
+
+Revision ID: 001
+Revises: 
+Create Date: 2024-01-01
+
+Prva migracija - kreira sve tabele bez foreign key-eva
+"""
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
@@ -9,6 +17,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Kreiranje tabele korisnici
     op.create_table(
         'korisnici',
         sa.Column('id_korisnik', sa.Integer(), primary_key=True, index=True),
@@ -26,6 +35,7 @@ def upgrade() -> None:
         sa.Column('poslednja_prijava', sa.DateTime(), nullable=True),
     )
     
+    # Kreiranje tabele lokacije
     op.create_table(
         'lokacije',
         sa.Column('id_lokacija', sa.Integer(), primary_key=True, index=True),
@@ -37,6 +47,7 @@ def upgrade() -> None:
         sa.Column('grad', sa.String(100), index=True, nullable=False),
     )
     
+    # Kreiranje tabele slike
     op.create_table(
         'slike',
         sa.Column('id_slika', sa.Integer(), primary_key=True, index=True),
@@ -51,6 +62,7 @@ def upgrade() -> None:
         sa.Column('redosled', sa.Integer(), default=0),
     )
     
+    # Kreiranje tabele izlozbe
     op.create_table(
         'izlozbe',
         sa.Column('id_izlozba', sa.Integer(), primary_key=True, index=True),
@@ -70,6 +82,7 @@ def upgrade() -> None:
         sa.Column('datum_izmene', sa.DateTime(), nullable=True),
     )
     
+    # Kreiranje tabele prijave
     op.create_table(
         'prijave',
         sa.Column('id_prijava', sa.Integer(), primary_key=True, index=True),

@@ -1,3 +1,7 @@
+"""
+Model Lokacija (Location)
+Predstavlja lokaciju gde se održava izložba
+"""
 from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import String, Text, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -8,6 +12,18 @@ if TYPE_CHECKING:
 
 
 class Lokacija(Base):
+    """
+    Model lokacije za izložbe.
+    
+    Atributi:
+        - id_lokacija: Primarni ključ
+        - naziv: Ime lokacije (npr. "Galerija SANU")
+        - opis: Detaljan opis lokacije
+        - g_sirina: Geografska širina (latitude)
+        - g_duzina: Geografska dužina (longitude)
+        - adresa: Puna adresa
+        - grad: Grad u kojem se nalazi
+    """
     __tablename__ = "lokacije"
     
     id_lokacija: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -18,6 +34,7 @@ class Lokacija(Base):
     adresa: Mapped[str] = mapped_column(String(300))
     grad: Mapped[str] = mapped_column(String(100), index=True)
     
+    # Relacija sa izložbama (1:N)
     izlozbe: Mapped[List["Izlozba"]] = relationship(
         "Izlozba",
         back_populates="lokacija",

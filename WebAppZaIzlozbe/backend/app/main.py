@@ -5,6 +5,7 @@ import logging
 
 from app.config import settings
 from app.database import engine, Base
+from app.routers import auth, korisnici
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,6 +42,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth.router)
+app.include_router(korisnici.router)
 
 @app.get("/", tags=["Root"])
 async def root():

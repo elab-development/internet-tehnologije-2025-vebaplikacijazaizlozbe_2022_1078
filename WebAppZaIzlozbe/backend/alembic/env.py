@@ -1,3 +1,6 @@
+"""
+Alembic environment konfiguracija
+"""
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -5,23 +8,29 @@ from alembic import context
 import os
 import sys
 
+# Dodavanje parent direktorijuma u sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import Base
 from app.models import Korisnik, Lokacija, Slika, Izlozba, Prijava
 from app.config import settings
 
+# this is the Alembic Config object
 config = context.config
 
+# Override sqlalchemy.url sa vrednosti iz settings
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
+# Interpret the config file for Python logging.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# add your model's MetaData object here for 'autogenerate' support
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode."""
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -35,6 +44,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

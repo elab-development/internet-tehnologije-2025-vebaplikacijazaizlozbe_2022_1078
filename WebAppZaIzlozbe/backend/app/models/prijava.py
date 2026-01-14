@@ -1,3 +1,7 @@
+"""
+Model Prijava (Registration)
+Predstavlja prijavu korisnika na izložbu
+"""
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, Boolean, Integer, DateTime, ForeignKey, Text
@@ -11,6 +15,23 @@ if TYPE_CHECKING:
 
 
 class Prijava(Base):
+    """
+    Model prijave na izložbu.
+    
+    Atributi:
+        - id_prijava: Primarni ključ
+        - id_korisnik: FK ka korisniku
+        - id_izlozba: FK ka izložbi
+        - id_slika: FK ka slici (opciono, za QR)
+        - broj_karata: Broj rezervisanih karata
+        - qr_kod: Sadržaj QR koda (JSON string)
+        - validirano: Da li je karta validirana
+        - datum_registracije: Datum prijave
+        - slika_qr: Base64 encoded QR kod slika
+        - verifikovan_email: Da li je email verifikovan
+        - email_poslat: Da li je email sa kartom poslat
+        - datum_slanja_emaila: Kada je email poslat
+    """
     __tablename__ = "prijave"
     
     id_prijava: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -29,13 +50,14 @@ class Prijava(Base):
     datum_registracije: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
     )
-    slika_qr: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    slika_qr: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Base64
     verifikovan_email: Mapped[bool] = mapped_column(Boolean, default=False)
     email_poslat: Mapped[bool] = mapped_column(Boolean, default=False)
     datum_slanja_emaila: Mapped[Optional[datetime]] = mapped_column(
         DateTime, nullable=True
     )
     
+    # Relacije
     korisnik: Mapped["Korisnik"] = relationship(
         "Korisnik",
         back_populates="prijave"

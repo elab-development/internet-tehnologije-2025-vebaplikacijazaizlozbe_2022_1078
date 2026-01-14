@@ -1,3 +1,7 @@
+"""
+Model Izlozba (Exhibition)
+Predstavlja izložbu fotografija
+"""
 from datetime import datetime, date
 from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import String, Text, Boolean, Integer, Date, DateTime, ForeignKey
@@ -11,6 +15,26 @@ if TYPE_CHECKING:
 
 
 class Izlozba(Base):
+    """
+    Model izložbe fotografija.
+    
+    Atributi:
+        - id_izlozba: Primarni ključ
+        - id_slika: FK ka naslovnoj slici
+        - naslov: Naslov izložbe
+        - opis: Detaljan opis
+        - kratak_opis: Kratki opis za preview
+        - datum_pocetka: Datum početka izložbe
+        - datum_zavrsetka: Datum završetka
+        - id_lokacija: FK ka lokaciji
+        - kapacitet: Maksimalni broj posetilaca
+        - thumbnail: URL do thumbnail-a
+        - osmislio: Ko je osmislio izložbu
+        - aktivan: Da li je izložba aktivna
+        - objavljeno: Da li je izložba objavljena
+        - datum_kreiranja: Datum kreiranja zapisa
+        - datum_izmene: Datum poslednje izmene
+    """
     __tablename__ = "izlozbe"
     
     id_izlozba: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -38,6 +62,7 @@ class Izlozba(Base):
         DateTime, nullable=True, onupdate=datetime.utcnow
     )
     
+    # Relacije
     lokacija: Mapped["Lokacija"] = relationship(
         "Lokacija",
         back_populates="izlozbe"
@@ -67,11 +92,13 @@ class Izlozba(Base):
     
     @property
     def preostali_kapacitet(self) -> int:
+        """Izračunava preostali kapacitet"""
         ukupno_prijava = sum(p.broj_karata for p in self.prijave)
         return max(0, self.kapacitet - ukupno_prijava)
     
     @property
     def is_active(self) -> bool:
+        """Proverava da li je izložba trenutno aktivna"""
         today = date.today()
         return (
             self.aktivan and 

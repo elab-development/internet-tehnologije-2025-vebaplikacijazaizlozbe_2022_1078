@@ -1,3 +1,7 @@
+"""
+Model Korisnik (User)
+Predstavlja korisnika sistema sa informacijama o profilu i privilegijama
+"""
 from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import String, Boolean, DateTime, Text
@@ -9,6 +13,23 @@ if TYPE_CHECKING:
 
 
 class Korisnik(Base):
+    """
+    Model korisnika sistema.
+    
+    Atributi:
+        - id_korisnik: Primarni ključ
+        - username: Jedinstveno korisničko ime
+        - email: Email adresa (jedinstvena)
+        - lozinka: Heširana lozinka
+        - ime, prezime: Lični podaci
+        - telefon: Kontakt telefon
+        - profilna_slika: URL do profilne slike
+        - aktivan: Da li je nalog aktivan
+        - osoblje: Da li je član osoblja
+        - super_korisnik: Da li je administrator
+        - datum_pridruzivanja: Datum kreiranja naloga
+        - poslednja_prijava: Datum poslednje prijave
+    """
     __tablename__ = "korisnici"
     
     id_korisnik: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -31,6 +52,7 @@ class Korisnik(Base):
         DateTime, nullable=True
     )
     
+    # Relacija sa prijavama (1:N)
     prijave: Mapped[List["Prijava"]] = relationship(
         "Prijava", 
         back_populates="korisnik",
@@ -42,12 +64,15 @@ class Korisnik(Base):
     
     @property
     def puno_ime(self) -> str:
+        """Vraća puno ime korisnika"""
         return f"{self.ime} {self.prezime}"
     
     @property
     def is_admin(self) -> bool:
+        """Proverava da li je korisnik administrator"""
         return self.super_korisnik
     
     @property
     def is_staff(self) -> bool:
+        """Proverava da li je korisnik član osoblja"""
         return self.osoblje or self.super_korisnik
