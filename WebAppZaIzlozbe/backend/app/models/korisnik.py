@@ -1,0 +1,53 @@
+from datetime import datetime
+from typing import Optional, List, TYPE_CHECKING
+from sqlalchemy import String, Boolean, DateTime, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.database import Base
+
+if TYPE_CHECKING:
+    from app.models.prijava import Prijava
+
+
+class Korisnik(Base):
+    __tablename__ = "korisnici"
+    
+    id_korisnik: Mapped[int] = mapped_column(primary_key=True, index=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    lozinka: Mapped[str] = mapped_column(String(255))
+    ime: Mapped[str] = mapped_column(String(50))
+    prezime: Mapped[str] = mapped_column(String(50))
+    telefon: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    profilna_slika: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    grad: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    adresa: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    aktivan: Mapped[bool] = mapped_column(Boolean, default=True)
+    osoblje: Mapped[bool] = mapped_column(Boolean, default=False)
+    super_korisnik: Mapped[bool] = mapped_column(Boolean, default=False)
+    datum_pridruzivanja: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow
+    )
+    poslednja_prijava: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    
+    prijave: Mapped[List["Prijava"]] = relationship(
+        "Prijava", 
+        back_populates="korisnik",
+        cascade="all, delete-orphan"
+    )
+    
+    def __repr__(self) -> str:
+        return f"<Korisnik(id={self.id_korisnik}, username='{self.username}')>"
+    
+    @property
+    def puno_ime(self) -> str:
+        return f"{self.ime} {self.prezime}"
+    
+    @property
+    def is_admin(self) -> bool:
+        return self.super_korisnik
+    
+    @property
+    def is_staff(self) -> bool:
+        return self.osoblje or self.super_korisnik

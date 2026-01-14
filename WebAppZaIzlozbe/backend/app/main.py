@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import logging
 
 from app.config import settings
+from app.database import engine, Base
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,6 +16,9 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Pokretanje aplikacije...")
+    
+    Base.metadata.create_all(bind=engine)
+    logger.info("Baza podataka inicijalizovana")
     
     yield
     
