@@ -1,3 +1,7 @@
+"""
+Auth Router - Autentifikacija
+Login, Register, Logout, Get Current User
+"""
 from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Response
@@ -19,6 +23,16 @@ async def register(
     korisnik: KorisnikCreate,
     db: Session = Depends(get_db)
 ):
+    """
+    Registracija novog korisnika.
+    
+    - **username**: Jedinstveno korisničko ime (min 3 karaktera)
+    - **email**: Validna email adresa
+    - **lozinka**: Lozinka (min 6 karaktera)
+    - **ime**: Ime korisnika
+    - **prezime**: Prezime korisnika
+    """
+    # Provera da li username već postoji
     existing_username = db.query(Korisnik).filter(
         Korisnik.username == korisnik.username
     ).first()
@@ -28,6 +42,7 @@ async def register(
             detail="Korisničko ime već postoji"
         )
     
+    # Provera da li email već postoji
     existing_email = db.query(Korisnik).filter(
         Korisnik.email == korisnik.email
     ).first()
@@ -37,6 +52,7 @@ async def register(
             detail="Email adresa već postoji"
         )
     
+    # Kreiranje novog korisnika
     hashed_password = get_password_hash(korisnik.lozinka)
     db_korisnik = Korisnik(
         username=korisnik.username,
@@ -64,6 +80,13 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
+    """
+    Prijava korisnika. Vraća JWT token.
+    
+    - **username**: Korisničko ime
+    - **password**: Lozinka
+    """
+    # Pronalaženje korisnika
     user = db.query(Korisnik).filter(
         Korisnik.username == form_data.username
     ).first()
@@ -81,9 +104,11 @@ async def login(
             detail="Korisnički nalog je deaktiviran"
         )
     
+    # Ažuriranje poslednje prijave
     user.poslednja_prijava = datetime.utcnow()
     db.commit()
     
+    # Kreiranje tokena
     access_token = create_access_token(
         data={"sub": user.username, "user_id": user.id_korisnik}
     )
@@ -95,6 +120,11 @@ async def login(
 async def logout(
     current_user: Korisnik = Depends(get_current_user_required)
 ):
+    """
+    Odjava korisnika.
+    
+    Klijent treba da obriše token sa svoje strane.
+    """
     return {"message": "Uspešno ste se odjavili"}
 
 
@@ -102,4 +132,7 @@ async def logout(
 async def get_me(
     current_user: Korisnik = Depends(get_current_user_required)
 ):
+    """
+    Vraća podatke o trenutno prijavljenom korisniku.
+    """
     return current_user

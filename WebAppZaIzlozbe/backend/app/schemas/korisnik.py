@@ -1,9 +1,13 @@
+"""
+Pydantic šeme za Korisnik (User)
+"""
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 
 
 class KorisnikBase(BaseModel):
+    """Bazna šema za korisnika"""
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr
     ime: str = Field(..., min_length=1, max_length=50)
@@ -15,10 +19,12 @@ class KorisnikBase(BaseModel):
 
 
 class KorisnikCreate(KorisnikBase):
+    """Šema za kreiranje korisnika"""
     lozinka: str = Field(..., min_length=6, max_length=100)
 
 
 class KorisnikUpdate(BaseModel):
+    """Šema za ažuriranje korisnika"""
     ime: Optional[str] = Field(None, min_length=1, max_length=50)
     prezime: Optional[str] = Field(None, min_length=1, max_length=50)
     telefon: Optional[str] = Field(None, max_length=20)
@@ -31,6 +37,7 @@ class KorisnikUpdate(BaseModel):
 
 
 class KorisnikResponse(KorisnikBase):
+    """Šema za odgovor sa podacima korisnika"""
     id_korisnik: int
     aktivan: bool
     osoblje: bool
@@ -43,5 +50,6 @@ class KorisnikResponse(KorisnikBase):
 
 
 class KorisnikLogin(BaseModel):
+    """Šema za prijavu korisnika"""
     username: str
     lozinka: str

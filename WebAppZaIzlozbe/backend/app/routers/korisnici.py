@@ -1,3 +1,7 @@
+"""
+Korisnici Router - Upravljanje korisnicima
+CRUD operacije za korisnike (admin pristup)
+"""
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
@@ -18,6 +22,13 @@ async def list_korisnici(
     db: Session = Depends(get_db),
     current_user: Korisnik = Depends(get_current_admin)
 ):
+    """
+    Lista svih korisnika (samo admin).
+    
+    - **skip**: Broj preskočenih rezultata
+    - **limit**: Maksimalni broj rezultata
+    - **aktivan**: Filter po aktivnosti
+    """
     query = db.query(Korisnik)
     
     if aktivan is not None:
@@ -33,6 +44,12 @@ async def get_korisnik(
     db: Session = Depends(get_db),
     current_user: Korisnik = Depends(get_current_user_required)
 ):
+    """
+    Vraća podatke o korisniku po ID-u.
+    
+    Korisnik može videti samo svoje podatke, admin može videti sve.
+    """
+    # Provera prava pristupa
     if current_user.id_korisnik != korisnik_id and not current_user.super_korisnik:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -59,6 +76,12 @@ async def update_korisnik(
     db: Session = Depends(get_db),
     current_user: Korisnik = Depends(get_current_user_required)
 ):
+    """
+    Ažurira podatke o korisniku.
+    
+    Korisnik može ažurirati samo svoje podatke (osim osoblje/super_korisnik).
+    Admin može ažurirati sve podatke.
+    """
     korisnik = db.query(Korisnik).filter(
         Korisnik.id_korisnik == korisnik_id
     ).first()
@@ -69,6 +92,7 @@ async def update_korisnik(
             detail="Korisnik nije pronađen"
         )
     
+    # Provera prava pristupa
     is_self = current_user.id_korisnik == korisnik_id
     is_admin = current_user.super_korisnik
     
@@ -78,12 +102,15 @@ async def update_korisnik(
             detail="Nemate pravo da menjate podatke ovog korisnika"
         )
     
+    # Ažuriranje dozvoljenih polja
     update_data = korisnik_update.model_dump(exclude_unset=True)
     
+    # Samo admin može menjati osoblje i super_korisnik, i osnovne podatke (ime, prezime, email)
     if not is_admin:
         update_data.pop("osoblje", None)
         update_data.pop("super_korisnik", None)
         update_data.pop("aktivan", None)
+        # Običan korisnik ne može menjati ime, prezime i email
         update_data.pop("ime", None)
         update_data.pop("prezime", None)
         update_data.pop("email", None)
@@ -104,6 +131,9 @@ async def delete_korisnik(
     db: Session = Depends(get_db),
     current_user: Korisnik = Depends(get_current_admin)
 ):
+    """
+    Briše korisnika (samo admin).
+    """
     korisnik = db.query(Korisnik).filter(
         Korisnik.id_korisnik == korisnik_id
     ).first()
@@ -114,6 +144,7 @@ async def delete_korisnik(
             detail="Korisnik nije pronađen"
         )
     
+    # Ne dozvoljavamo brisanje sopstvenog naloga
     if korisnik.id_korisnik == current_user.id_korisnik:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
