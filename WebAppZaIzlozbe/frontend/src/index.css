@@ -44,40 +44,23 @@ body {
 
 @layer components {
   .btn-luxury {
-    @apply px-6 py-3 bg-white text-black font-medium rounded-none 
-           transition-all duration-300 ease-out
-           hover:bg-luxury-light hover:shadow-glow
-           focus:outline-none focus:ring-2 focus:ring-accent-gold focus:ring-offset-2 focus:ring-offset-black
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-6 py-3 bg-white text-black font-medium rounded-none transition-all duration-300 ease-out hover:bg-luxury-light hover:shadow-glow focus:outline-none focus:ring-2 focus:ring-accent-gold focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-luxury-outline {
-    @apply px-6 py-3 bg-transparent text-white font-medium rounded-none 
-           border border-white transition-all duration-300 ease-out
-           hover:bg-white hover:text-black
-           focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-6 py-3 bg-transparent text-white font-medium rounded-none border border-white transition-all duration-300 ease-out hover:bg-white hover:text-black focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-luxury-gold {
-    @apply px-6 py-3 bg-accent-gold text-black font-medium rounded-none 
-           transition-all duration-300 ease-out
-           hover:bg-yellow-500 hover:shadow-glow
-           focus:outline-none focus:ring-2 focus:ring-accent-gold focus:ring-offset-2 focus:ring-offset-black
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-6 py-3 bg-accent-gold text-black font-medium rounded-none transition-all duration-300 ease-out hover:bg-yellow-500 hover:shadow-glow focus:outline-none focus:ring-2 focus:ring-accent-gold focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .input-luxury {
-    @apply w-full px-4 py-3 bg-luxury-dark border border-luxury-gray text-white
-           placeholder-luxury-silver rounded-none
-           transition-all duration-300 ease-out
-           focus:outline-none focus:border-white focus:ring-1 focus:ring-white;
+    @apply w-full px-4 py-3 bg-luxury-dark border border-luxury-gray text-white placeholder-luxury-silver rounded-none transition-all duration-300 ease-out focus:outline-none focus:border-white focus:ring-1 focus:ring-white;
   }
 
   .card-luxury {
-    @apply bg-luxury-dark border border-luxury-gray
-           transition-all duration-300 ease-out
-           hover:border-luxury-silver hover:shadow-luxury;
+    @apply bg-luxury-dark border border-luxury-gray transition-all duration-300 ease-out hover:border-luxury-silver hover:shadow-luxury;
   }
 
   .text-display {
@@ -89,25 +72,19 @@ body {
   }
 
   .link-luxury {
-    @apply text-luxury-silver hover:text-white transition-colors duration-300
-           relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-px 
-           after:bg-white after:transition-all after:duration-300
-           hover:after:w-full;
+    @apply text-luxury-silver hover:text-white transition-colors duration-300 relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-px after:bg-white after:transition-all after:duration-300 hover:after:w-full;
   }
 
   .image-overlay {
-    @apply absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent
-           opacity-0 transition-opacity duration-300 group-hover:opacity-100;
+    @apply absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100;
   }
 
   .badge-luxury {
-    @apply inline-flex items-center px-3 py-1 text-xs font-medium
-           bg-luxury-gray text-luxury-light border border-luxury-gray;
+    @apply inline-flex items-center px-3 py-1 text-xs font-medium bg-luxury-gray text-luxury-light border border-luxury-gray;
   }
 
   .badge-gold {
-    @apply inline-flex items-center px-3 py-1 text-xs font-medium
-           bg-accent-gold/20 text-accent-gold border border-accent-gold/30;
+    @apply inline-flex items-center px-3 py-1 text-xs font-medium bg-accent-gold/20 text-accent-gold border border-accent-gold/30;
   }
 }
 
@@ -115,12 +92,15 @@ body {
   .animation-delay-100 {
     animation-delay: 100ms;
   }
+
   .animation-delay-200 {
     animation-delay: 200ms;
   }
+
   .animation-delay-300 {
     animation-delay: 300ms;
   }
+
   .animation-delay-400 {
     animation-delay: 400ms;
   }
