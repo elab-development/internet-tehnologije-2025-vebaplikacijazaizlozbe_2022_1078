@@ -3,9 +3,12 @@ import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
+import Exhibitions from './pages/Exhibitions';
+import ExhibitionDetails from './pages/ExhibitionDetails';
 import Login from './pages/Login';
 import Register from './pages/Register';
-
+import Profile from './pages/Profile';
+import AdminPanel from './pages/AdminPanel';
 
 function Layout({ children, showNavbar = true, showFooter = true }) {
     return (
@@ -32,8 +35,27 @@ function App() {
                             </Layout>
                         }
                     />
-
                     {/*login i registr str*/}
+                    <Route
+                        path="/izlozbe"
+                        element={
+                            <Layout>
+                                <Exhibitions />
+                            </Layout>
+                        }
+                    />
+
+                    <Route
+                        path="/izlozbe/:slug"
+                        element={
+                            <Layout showNavbar={false}>
+                                <Navbar />
+                                <ExhibitionDetails />
+                            </Layout>
+                        }
+                    />
+
+                    {/* Auth stranice - bez footer-a */}
                     <Route
                         path="/login"
                         element={
@@ -53,6 +75,25 @@ function App() {
                     />
 
                     {/*str nije pronadjena*/}
+                    <Route
+                        path="/profil"
+                        element={
+                            <Layout>
+                                <Profile />
+                            </Layout>
+                        }
+                    />
+
+                    <Route
+                        path="/admin"
+                        element={
+                            <Layout>
+                                <AdminPanel />
+                            </Layout>
+                        }
+                    />
+
+                    {/* 404 */}
                     <Route
                         path="*"
                         element={
