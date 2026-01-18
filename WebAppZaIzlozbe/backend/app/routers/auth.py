@@ -39,7 +39,7 @@ async def register(
     if existing_username:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Korisničko ime već postoji"
+            detail=f"Korisničko ime '{korisnik.username}' je već zauzeto. Molimo odaberite drugo."
         )
     
     # Provera da li email već postoji
@@ -49,7 +49,7 @@ async def register(
     if existing_email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email adresa već postoji"
+            detail=f"Email adresa '{korisnik.email}' je već registrovana. Pokušajte da se prijavite."
         )
     
     # Kreiranje novog korisnika
@@ -63,7 +63,6 @@ async def register(
         telefon=korisnik.telefon,
         profilna_slika=korisnik.profilna_slika,
         aktivan=True,
-        osoblje=False,
         super_korisnik=False,
         datum_pridruzivanja=datetime.utcnow()
     )

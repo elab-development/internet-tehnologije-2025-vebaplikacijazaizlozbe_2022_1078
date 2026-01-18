@@ -118,6 +118,7 @@ export default function ExhibitionDetails() {
                         'https://images.unsplash.com/photo-1493397212122-2b85def82824?q=80&w=1920&auto=format&fit=crop'}
                     alt={exhibition.naslov}
                     className="w-full h-full object-cover opacity-50"
+                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://images.unsplash.com/photo-1493397212122-2b85def82824?q=80&w=1920&auto=format&fit=crop'; }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-luxury-black via-luxury-black/50 to-transparent" />
 
@@ -257,11 +258,14 @@ export default function ExhibitionDetails() {
                         <div className="w-16 h-16 mx-auto mb-4 bg-green-900/50 rounded-full flex items-center justify-center">
                             <FiCheck className="w-8 h-8 text-green-400" />
                         </div>
-                        <p className="text-white text-lg mb-4">
+                        <p className="text-white text-lg mb-2">
                             Uspešno ste se prijavili za izložbu!
                         </p>
-                        <p className="text-luxury-silver mb-6">
-                            QR kod za ulaz je poslat na vaš email.
+                        <p className="text-accent-gold font-medium mb-4">
+                            Karta sa QR kodom je poslata na vaš email{user?.email ? `: ${user.email}` : ''}
+                        </p>
+                        <p className="text-luxury-silver text-sm mb-6">
+                            Proverite svoje sanduče i pokažite QR kod na ulazu.
                         </p>
 
 

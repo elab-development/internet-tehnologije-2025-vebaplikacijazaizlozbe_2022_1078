@@ -32,7 +32,6 @@ class KorisnikUpdate(BaseModel):
     adresa: Optional[str] = Field(None, max_length=200)
     profilna_slika: Optional[str] = None
     aktivan: Optional[bool] = None
-    osoblje: Optional[bool] = None
     super_korisnik: Optional[bool] = None
 
 
@@ -40,7 +39,6 @@ class KorisnikResponse(KorisnikBase):
     """Šema za odgovor sa podacima korisnika"""
     id_korisnik: int
     aktivan: bool
-    osoblje: bool
     super_korisnik: bool
     datum_pridruzivanja: datetime
     poslednja_prijava: Optional[datetime] = None

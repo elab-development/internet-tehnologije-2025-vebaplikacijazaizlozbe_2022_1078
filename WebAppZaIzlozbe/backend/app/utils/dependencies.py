@@ -72,18 +72,3 @@ async def get_current_admin(
             detail="Nemate administratorska prava"
         )
     return current_user
-
-
-async def get_current_staff(
-    current_user: Korisnik = Depends(get_current_user_required)
-) -> Korisnik:
-    """
-    Zahteva člana osoblja ili admina.
-    Baca izuzetak ako korisnik nije osoblje/admin.
-    """
-    if not (current_user.osoblje or current_user.super_korisnik):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Nemate prava osoblja"
-        )
-    return current_user

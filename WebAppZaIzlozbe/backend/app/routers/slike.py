@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.slika import Slika
 from app.models.korisnik import Korisnik
 from app.schemas.slika import SlikaCreate, SlikaUpdate, SlikaResponse
-from app.utils.dependencies import get_current_staff
+from app.utils.dependencies import get_current_admin
 from app.services import artic_service
 
 router = APIRouter(prefix="/api/slike", tags=["Slike"])
@@ -74,7 +74,7 @@ async def get_slika(
 async def create_slika(
     slika: SlikaCreate,
     db: Session = Depends(get_db),
-    current_user: Korisnik = Depends(get_current_staff)
+    current_user: Korisnik = Depends(get_current_admin)
 ):
     db_slika = Slika(**slika.model_dump())
     
@@ -89,7 +89,7 @@ async def create_slika(
 async def create_slika_from_artic(
     artwork_id: int,
     db: Session = Depends(get_db),
-    current_user: Korisnik = Depends(get_current_staff)
+    current_user: Korisnik = Depends(get_current_admin)
 ):
     artwork = await artic_service.get_artwork_by_id(artwork_id)
     
@@ -114,7 +114,7 @@ async def update_slika(
     slika_id: int,
     slika_update: SlikaUpdate,
     db: Session = Depends(get_db),
-    current_user: Korisnik = Depends(get_current_staff)
+    current_user: Korisnik = Depends(get_current_admin)
 ):
     slika = db.query(Slika).filter(Slika.id_slika == slika_id).first()
     
@@ -139,7 +139,7 @@ async def update_slika(
 async def delete_slika(
     slika_id: int,
     db: Session = Depends(get_db),
-    current_user: Korisnik = Depends(get_current_staff)
+    current_user: Korisnik = Depends(get_current_admin)
 ):
     slika = db.query(Slika).filter(Slika.id_slika == slika_id).first()
     

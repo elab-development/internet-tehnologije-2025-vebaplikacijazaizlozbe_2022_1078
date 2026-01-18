@@ -23,6 +23,16 @@ def seed_database():
         db.commit()
         
         Base.metadata.create_all(bind=engine)
+
+        osoblje_user = db.query(Korisnik).filter(Korisnik.username == "osoblje").first()
+        if osoblje_user:
+            print("Brisanje zaostalog 'osoblje' korisnika...")
+            db.delete(osoblje_user)
+            db.commit()
+
+        if db.query(Korisnik).count() > 0 and not osoblje_user:
+            print("Podaci već postoje.")
+            return
         
         print("Kreiranje test podataka...")
         
@@ -34,21 +44,7 @@ def seed_database():
             prezime="Korisnik",
             telefon="+381601234567",
             aktivan=True,
-            osoblje=True,
             super_korisnik=True,
-            datum_pridruzivanja=datetime.utcnow()
-        )
-        
-        osoblje = Korisnik(
-            username="osoblje",
-            email="osoblje@galerija.rs",
-            lozinka=get_password_hash("osoblje123"),
-            ime="Petar",
-            prezime="Petrović",
-            telefon="+381611234567",
-            aktivan=True,
-            osoblje=True,
-            super_korisnik=False,
             datum_pridruzivanja=datetime.utcnow()
         )
         
@@ -60,12 +56,11 @@ def seed_database():
             prezime="Marković",
             telefon="+381621234567",
             aktivan=True,
-            osoblje=False,
             super_korisnik=False,
             datum_pridruzivanja=datetime.utcnow()
         )
         
-        db.add_all([admin, osoblje, korisnik])
+        db.add_all([admin, korisnik])
         db.commit()
         print("✓ Korisnici kreirani")
         
@@ -96,7 +91,25 @@ def seed_database():
             grad="Novi Sad"
         )
         
-        lokacije = [lokacija1, lokacija2, lokacija3]
+        lokacija4 = Lokacija(
+            naziv="Narodni muzej Niš",
+            opis="Multimedijalni muzejski kompleks sa stalnom postavkom i povremenim izložbama",
+            g_sirina=43.3209,
+            g_duzina=21.8958,
+            adresa="Generala Milojka Lešjanina 21",
+            grad="Niš"
+        )
+        
+        lokacija5 = Lokacija(
+            naziv="Galerija RIMA Kragujevac",
+            opis="Savremena galerija sa fokusom na modernu umetnost",
+            g_sirina=44.0128,
+            g_duzina=20.9114,
+            adresa="Trg Radomira Putnika 4",
+            grad="Kragujevac"
+        )
+        
+        lokacije = [lokacija1, lokacija2, lokacija3, lokacija4, lokacija5]
         db.add_all(lokacije)
         db.commit()
         print("✓ Lokacije kreirane")
@@ -267,24 +280,68 @@ def seed_database():
                 thumbnail=slike[5].thumbnail,
                 id_slika=slike[5].id_slika,
                 datum_kreiranja=datetime.utcnow()
+            ),
+            Izlozba(
+                naslov="Fotografija Niškog kraja",
+                slug="fotografija-niskog-kraja",
+                opis="Ekskluzivna izložba fotografija koje prikazuju lepotu i tradiciju Niškog kraja. Od Niške tvrđave do živopisnih pejzaža.",
+                kratak_opis="Otkrijte lepotu Niša kroz objektiv lokalnih fotografa",
+                datum_pocetka=date(2026, 2, 1),
+                datum_zavrsetka=date(2026, 4, 30),
+                id_lokacija=lokacije[3].id_lokacija,
+                kapacitet=100,
+                osmislio="Kustos Milena Jovanović",
+                aktivan=True,
+                objavljeno=True,
+                thumbnail=slike[6].thumbnail,
+                id_slika=slike[6].id_slika,
+                datum_kreiranja=datetime.utcnow()
+            ),
+            Izlozba(
+                naslov="Industrijsko Nasleđe Šumadije",
+                slug="industrijsko-nasledje-sumadije",
+                opis="Fotografska dokumentacija industrijskog razvoja Kragujevca i Šumadije. Od Zastave do savremene industrije.",
+                kratak_opis="Industrijsko nasleđe regiona kroz fotografiju",
+                datum_pocetka=date(2026, 1, 15),
+                datum_zavrsetka=date(2026, 3, 15),
+                id_lokacija=lokacije[4].id_lokacija,
+                kapacitet=80,
+                osmislio="Dr Aleksandar Nikolić",
+                aktivan=True,
+                objavljeno=True,
+                thumbnail=slike[0].thumbnail,
+                id_slika=slike[0].id_slika,
+                datum_kreiranja=datetime.utcnow()
             )
         ]
         
         db.add_all(izlozbe)
         db.commit()
         
+        unsplash_ids = [
+            "1545989254-660df955dbd6", "1576016773942-0040248e1a48", "1551913902-1322fc692c27",
+            "1536924940846-227afb31e215", "1569407334754-1b31f8af84ec", "1580136906911-37d46532454a",
+            "1577720580479-7d839d829c73", "1515405295579-ba7a4592924a", "1550684848-fac1c5b4e853",
+            "1578301978693-85fa9c0320b9", "1547826039-bfc35e0f1ea8", "1578925518479-0af2e572e969",
+            "1577083552431-6e5fd01988ec", "1549490349-8643362247b5", "1577083288073-40892c0860a4",
+            "1518998053901-5348d3969104", "1579783902614-a3fb3927b6a5", "1576506542790-51244b486a6b"
+        ]
+        
         for i, izlo in enumerate(izlozbe):
+            img1_id = unsplash_ids[(i * 2) % len(unsplash_ids)]
+            img2_id = unsplash_ids[(i * 2 + 1) % len(unsplash_ids)]
+            
             dodatne_slike = [
                 Slika(
-                    slika=f"https://images.unsplash.com/photo-{1500000000000 + i}?auto=format&fit=crop&q=80&w=1000",
-                    thumbnail=f"https://images.unsplash.com/photo-{1500000000000 + i}?auto=format&fit=crop&q=80&w=400",
-                    naslov=f"Detalj {i+1}",
+                    slika=f"https://images.unsplash.com/photo-{img1_id}?auto=format&fit=crop&q=80&w=1000",
+                    thumbnail=f"https://images.unsplash.com/photo-{img1_id}?auto=format&fit=crop&q=80&w=400",
+                    naslov=f"Eksponat {i+1}-A",
                     id_izlozba=izlo.id_izlozba
                 ),
                 Slika(
-                    slika=f"https://images.unsplash.com/photo-{1600000000000 + i}?auto=format&fit=crop&q=80&w=1000",
-                    thumbnail=f"https://images.unsplash.com/photo-{1600000000000 + i}?auto=format&fit=crop&q=80&w=400",
-                    naslov=f"Detalj {i+2}",
+                    slika=f"https://images.unsplash.com/photo-{img2_id}?auto=format&fit=crop&q=80&w=1000",
+                    thumbnail=f"https://images.unsplash.com/photo-{img2_id}?auto=format&fit=crop&q=80&w=400",
+                    naslov=f"Eksponat {i+1}-B",
                     id_izlozba=izlo.id_izlozba
                 )
             ]
@@ -297,8 +354,7 @@ def seed_database():
         print("Test podaci uspešno kreirani!")
         print("="*50)
         print("\nKorisnički nalozi:")
-        print("  Admin:   admin / admin123")
-        print("  Osoblje: osoblje / osoblje123")
+        print("  Admin:    admin / admin123")
         print("  Korisnik: marko / marko123")
         print("="*50)
         

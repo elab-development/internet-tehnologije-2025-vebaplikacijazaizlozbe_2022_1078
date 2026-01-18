@@ -22,18 +22,9 @@ class IzlozbaBase(BaseModel):
     id_slika: Optional[int] = None
     slike_urls: List[str] = Field(default_factory=list)
 
-    @field_validator('datum_pocetka')
-    @classmethod
-    def datum_pocetka_u_buducnosti(cls, v):
-
-        if v < date.today():
-            raise ValueError('Datum početka ne može biti u prošlosti')
-        return v
-    
     @field_validator('datum_zavrsetka')
     @classmethod
     def datum_zavrsetka_posle_pocetka(cls, v, info):
-
         if 'datum_pocetka' in info.data and v < info.data['datum_pocetka']:
             raise ValueError('Datum završetka mora biti posle datuma početka')
         return v

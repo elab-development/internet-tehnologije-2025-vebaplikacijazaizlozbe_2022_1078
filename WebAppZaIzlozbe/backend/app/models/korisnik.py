@@ -25,7 +25,6 @@ class Korisnik(Base):
         - telefon: Kontakt telefon
         - profilna_slika: URL do profilne slike
         - aktivan: Da li je nalog aktivan
-        - osoblje: Da li je član osoblja
         - super_korisnik: Da li je administrator
         - datum_pridruzivanja: Datum kreiranja naloga
         - poslednja_prijava: Datum poslednje prijave
@@ -43,7 +42,6 @@ class Korisnik(Base):
     grad: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     adresa: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     aktivan: Mapped[bool] = mapped_column(Boolean, default=True)
-    osoblje: Mapped[bool] = mapped_column(Boolean, default=False)
     super_korisnik: Mapped[bool] = mapped_column(Boolean, default=False)
     datum_pridruzivanja: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
@@ -71,8 +69,3 @@ class Korisnik(Base):
     def is_admin(self) -> bool:
         """Proverava da li je korisnik administrator"""
         return self.super_korisnik
-    
-    @property
-    def is_staff(self) -> bool:
-        """Proverava da li je korisnik član osoblja"""
-        return self.osoblje or self.super_korisnik

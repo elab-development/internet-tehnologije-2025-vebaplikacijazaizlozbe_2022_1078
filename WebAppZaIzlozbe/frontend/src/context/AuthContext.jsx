@@ -71,8 +71,11 @@ export function AuthProvider({ children }) {
     };
 
     const isAdmin = user?.super_korisnik === true;
-    const isStaff = user?.osoblje === true || isAdmin;
     const isAuthenticated = !!user;
+    const updateUser = (userData) => {
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+    };
 
     const value = {
         user,
@@ -81,8 +84,8 @@ export function AuthProvider({ children }) {
         login,
         register,
         logout,
+        updateUser,
         isAdmin,
-        isStaff,
         isAuthenticated,
     };
 

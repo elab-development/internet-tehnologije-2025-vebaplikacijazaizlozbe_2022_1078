@@ -13,7 +13,7 @@ import { slugify } from '../utils/helpers';
 
 export default function AdminPanel() {
     const navigate = useNavigate();
-    const { isAdmin, isStaff, isAuthenticated } = useAuth();
+    const { isAdmin, isAuthenticated } = useAuth();
 
     const [activeTab, setActiveTab] = useState('izlozbe');
     const [loading, setLoading] = useState(true);
@@ -34,13 +34,14 @@ export default function AdminPanel() {
     const [deleting, setDeleting] = useState(false);
 
     const [exhibitionModal, setExhibitionModal] = useState({ open: false, mode: 'create', data: null });
+    const [locationModal, setLocationModal] = useState({ open: false, mode: 'create', data: null });
     const [message, setMessage] = useState(null);
 
     useEffect(() => {
-        if (!isAuthenticated || (!isAdmin && !isStaff)) {
+        if (!isAuthenticated || !isAdmin) {
             navigate('/');
         }
-    }, [isAuthenticated, isAdmin, isStaff, navigate]);
+    }, [isAuthenticated, isAdmin, navigate]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -53,8 +54,9 @@ export default function AdminPanel() {
                 const locationsData = await lokacijeAPI.getAll();
                 setLocations(locationsData);
 
+                let usersData = [];
                 if (isAdmin) {
-                    const usersData = await korisniciAPI.getAll();
+                    usersData = await korisniciAPI.getAll();
                     setUsers(usersData);
                 }
 
@@ -64,7 +66,7 @@ export default function AdminPanel() {
                 setStats({
                     exhibitions: exhibitionsData.total || exhibitionsData.items?.length || 0,
                     locations: locationsData.length,
-                    users: isAdmin ? usersData.length : 0,
+                    users: isAdmin && usersData ? usersData.length : 0,
                     registrations: registrationsData.length,
                 });
 
@@ -75,10 +77,10 @@ export default function AdminPanel() {
             }
         };
 
-        if (isAuthenticated && (isAdmin || isStaff)) {
+        if (isAuthenticated && isAdmin) {
             fetchData();
         }
-    }, [isAuthenticated, isAdmin, isStaff]);
+    }, [isAuthenticated, isAdmin]);
 
     const handleDelete = async () => {
         try {
@@ -159,6 +161,34 @@ export default function AdminPanel() {
         }
     };
 
+    const handleLocationSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setMessage(null);
+
+        try {
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            if (locationModal.mode === 'create') {
+                const newLoc = await lokacijeAPI.create(data);
+                setLocations((prev) => [...prev, newLoc]);
+                setMessage('Lokacija uspešno kreirana');
+            } else {
+                const updated = await lokacijeAPI.update(locationModal.data.id_lokacija, data);
+                setLocations((prev) => prev.map((l) => l.id_lokacija === updated.id_lokacija ? updated : l));
+                setMessage('Lokacija uspešno ažurirana');
+            }
+
+            setLocationModal({ open: false, mode: 'create', data: null });
+        } catch (err) {
+            console.error(err);
+            setMessage('Došlo je do greške');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const formatDate = (dateString) => {
         if (!dateString) return '-';
         return new Date(dateString).toLocaleDateString('sr-Latn-RS');
@@ -171,7 +201,7 @@ export default function AdminPanel() {
         ...(isAdmin ? [{ id: 'korisnici', label: 'Korisnici', icon: FiUsers }] : []),
     ];
 
-    if (!isAuthenticated || (!isAdmin && !isStaff)) return null;
+    if (!isAuthenticated || !isAdmin) return null;
 
     return (
         <div className="min-h-screen bg-luxury-black pt-20 pb-12">
@@ -336,36 +366,57 @@ export default function AdminPanel() {
                         )}
 
                         {activeTab === 'lokacije' && (
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="bg-luxury-gray">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-luxury-silver uppercase">Naziv</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-luxury-silver uppercase">Grad</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-luxury-silver uppercase">Adresa</th>
-                                            <th className="px-4 py-3 text-right text-xs font-medium text-luxury-silver uppercase">Akcije</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-luxury-gray">
-                                        {locations.map((location) => (
-                                            <tr key={location.id_lokacija} className="hover:bg-luxury-gray/50">
-                                                <td className="px-4 py-3 text-white">{location.naziv}</td>
-                                                <td className="px-4 py-3 text-luxury-silver">{location.grad}</td>
-                                                <td className="px-4 py-3 text-luxury-silver">{location.adresa}</td>
-                                                <td className="px-4 py-3 text-right">
-                                                    {isAdmin && (
-                                                        <button
-                                                            onClick={() => setDeleteModal({ open: true, type: 'lokacija', id: location.id_lokacija })}
-                                                            className="p-2 text-luxury-silver hover:text-red-400 transition-colors"
-                                                        >
-                                                            <FiTrash2 className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </td>
+                            <div className="p-0">
+                                <div className="p-4 flex justify-end border-b border-luxury-gray">
+                                    <CustomButton
+                                        variant="gold"
+                                        icon={FiPlus}
+                                        onClick={() => setLocationModal({ open: true, mode: 'create', data: null })}
+                                    >
+                                        Nova Lokacija
+                                    </CustomButton>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-luxury-gray">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-luxury-silver uppercase">Naziv</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-luxury-silver uppercase">Grad</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-luxury-silver uppercase">Adresa</th>
+                                                <th className="px-4 py-3 text-right text-xs font-medium text-luxury-silver uppercase">Akcije</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y divide-luxury-gray">
+                                            {locations.map((location) => (
+                                                <tr key={location.id_lokacija} className="hover:bg-luxury-gray/50">
+                                                    <td className="px-4 py-3 text-white">{location.naziv}</td>
+                                                    <td className="px-4 py-3 text-luxury-silver">{location.grad}</td>
+                                                    <td className="px-4 py-3 text-luxury-silver">{location.adresa}</td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <button
+                                                                onClick={() => setLocationModal({ open: true, mode: 'edit', data: location })}
+                                                                className="p-2 text-luxury-silver hover:text-accent-gold transition-colors"
+                                                                title="Izmeni"
+                                                            >
+                                                                <FiEdit2 className="w-4 h-4" />
+                                                            </button>
+                                                            {isAdmin && (
+                                                                <button
+                                                                    onClick={() => setDeleteModal({ open: true, type: 'lokacija', id: location.id_lokacija })}
+                                                                    className="p-2 text-luxury-silver hover:text-red-400 transition-colors"
+                                                                    title="Obriši"
+                                                                >
+                                                                    <FiTrash2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         )}
 
@@ -431,8 +482,6 @@ export default function AdminPanel() {
                                                 <td className="px-4 py-3">
                                                     {u.super_korisnik ? (
                                                         <span className="badge-gold">Admin</span>
-                                                    ) : u.osoblje ? (
-                                                        <span className="badge-luxury">Osoblje</span>
                                                     ) : (
                                                         <span className="text-luxury-silver text-xs">Korisnik</span>
                                                     )}
@@ -614,6 +663,55 @@ export default function AdminPanel() {
 
                     <Modal.Footer>
                         <CustomButton variant="ghost" onClick={() => setExhibitionModal({ open: false, mode: 'create', data: null })}>
+                            Otkaži
+                        </CustomButton>
+                        <CustomButton type="submit" variant="gold" loading={loading}>
+                            Sačuvaj
+                        </CustomButton>
+                    </Modal.Footer>
+                </form>
+            </Modal>
+            <Modal
+                isOpen={locationModal.open}
+                onClose={() => setLocationModal({ open: false, mode: 'create', data: null })}
+                title={locationModal.mode === 'create' ? 'Nova Lokacija' : 'Izmeni Lokaciju'}
+                size="md"
+            >
+                <form onSubmit={handleLocationSubmit} className="space-y-4">
+                    <InputField
+                        label="Naziv lokacije"
+                        name="naziv"
+                        defaultValue={locationModal.data?.naziv}
+                        placeholder="npr. Galerija Moderna"
+                        required
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <InputField
+                            label="Grad"
+                            name="grad"
+                            defaultValue={locationModal.data?.grad}
+                            placeholder="npr. Beograd"
+                            required
+                        />
+                        <InputField
+                            label="Adresa"
+                            name="adresa"
+                            defaultValue={locationModal.data?.adresa}
+                            placeholder="npr. Knez Mihailova 12"
+                            required
+                        />
+                    </div>
+                    <InputField
+                        label="Opis"
+                        name="opis"
+                        defaultValue={locationModal.data?.opis}
+                        textarea
+                        rows={3}
+                        placeholder="Kratak opis lokacije..."
+                    />
+
+                    <Modal.Footer>
+                        <CustomButton variant="ghost" onClick={() => setLocationModal({ open: false, mode: 'create', data: null })}>
                             Otkaži
                         </CustomButton>
                         <CustomButton type="submit" variant="gold" loading={loading}>

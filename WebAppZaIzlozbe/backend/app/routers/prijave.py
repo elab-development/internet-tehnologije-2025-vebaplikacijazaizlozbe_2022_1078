@@ -7,7 +7,7 @@ from app.models.prijava import Prijava
 from app.models.izlozba import Izlozba
 from app.models.korisnik import Korisnik
 from app.schemas.prijava import PrijavaCreate, PrijavaUpdate, PrijavaResponse, PrijavaValidate
-from app.utils.dependencies import get_current_user_required, get_current_staff
+from app.utils.dependencies import get_current_user_required, get_current_admin
 from app.services.qr_service import generate_qr_code, decode_qr_data
 from app.services.email_service import send_registration_email
 
@@ -21,7 +21,7 @@ async def list_prijave(
     id_izlozba: Optional[int] = None,
     validirano: Optional[bool] = None,
     db: Session = Depends(get_db),
-    current_user: Korisnik = Depends(get_current_staff)
+    current_user: Korisnik = Depends(get_current_admin)
 ):
     query = db.query(Prijava).options(joinedload(Prijava.izlozba))
     
@@ -66,9 +66,9 @@ async def get_prijava(
         )
     
     is_owner = prijava.id_korisnik == current_user.id_korisnik
-    is_staff = current_user.osoblje or current_user.super_korisnik
+    is_admin = current_user.super_korisnik
     
-    if not is_owner and not is_staff:
+    if not is_owner and not is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Nemate pravo pristupa ovoj prijavi"
@@ -161,7 +161,7 @@ async def create_prijava(
 async def validate_prijava(
     validation: PrijavaValidate,
     db: Session = Depends(get_db),
-    current_user: Korisnik = Depends(get_current_staff)
+    current_user: Korisnik = Depends(get_current_admin)
 ):
     try:
         qr_data = decode_qr_data(validation.qr_kod)

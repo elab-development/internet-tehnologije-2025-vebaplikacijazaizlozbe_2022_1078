@@ -79,7 +79,7 @@ async def update_korisnik(
     """
     Ažurira podatke o korisniku.
     
-    Korisnik može ažurirati samo svoje podatke (osim osoblje/super_korisnik).
+    Korisnik može ažurirati samo svoje podatke (osim super_korisnik).
     Admin može ažurirati sve podatke.
     """
     korisnik = db.query(Korisnik).filter(
@@ -105,9 +105,8 @@ async def update_korisnik(
     # Ažuriranje dozvoljenih polja
     update_data = korisnik_update.model_dump(exclude_unset=True)
     
-    # Samo admin može menjati osoblje i super_korisnik, i osnovne podatke (ime, prezime, email)
+    # Samo admin može menjati super_korisnik i osnovne podatke (ime, prezime, email)
     if not is_admin:
-        update_data.pop("osoblje", None)
         update_data.pop("super_korisnik", None)
         update_data.pop("aktivan", None)
         # Običan korisnik ne može menjati ime, prezime i email

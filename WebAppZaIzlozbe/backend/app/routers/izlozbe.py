@@ -10,7 +10,7 @@ from app.models.korisnik import Korisnik
 from app.schemas.izlozba import (
     IzlozbaCreate, IzlozbaUpdate, IzlozbaResponse, IzlozbaListResponse
 )
-from app.utils.dependencies import get_current_staff, get_current_admin
+from app.utils.dependencies import get_current_admin
 
 router = APIRouter(prefix="/api/izlozbe", tags=["Izložbe"])
 
@@ -22,7 +22,7 @@ async def list_izlozbe(
     search: Optional[str] = None,
     grad: Optional[str] = None,
     aktivan: Optional[bool] = None,
-    objavljeno: Optional[bool] = None,
+    objavljeno: Optional[bool] = True,
     od_datuma: Optional[date] = None,
     do_datuma: Optional[date] = None,
     db: Session = Depends(get_db)
@@ -128,7 +128,7 @@ async def get_izlozba(
 async def create_izlozba(
     izlozba: IzlozbaCreate,
     db: Session = Depends(get_db),
-    current_user: Korisnik = Depends(get_current_staff)
+    current_user: Korisnik = Depends(get_current_admin)
 ):
     lokacija = db.query(Lokacija).filter(
         Lokacija.id_lokacija == izlozba.id_lokacija
@@ -178,7 +178,7 @@ async def update_izlozba(
     izlozba_id: int,
     izlozba_update: IzlozbaUpdate,
     db: Session = Depends(get_db),
-    current_user: Korisnik = Depends(get_current_staff)
+    current_user: Korisnik = Depends(get_current_admin)
 ):
     izlozba = db.query(Izlozba).filter(
         Izlozba.id_izlozba == izlozba_id
