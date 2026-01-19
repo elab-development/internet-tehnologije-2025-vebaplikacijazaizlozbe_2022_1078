@@ -9,7 +9,7 @@ import { izlozbeAPI, lokacijeAPI, korisniciAPI, prijaveAPI } from '../services/a
 import CustomButton from '../components/ui/CustomButton';
 import Modal from '../components/ui/Modal';
 import InputField from '../components/ui/InputField';
-import { slugify } from '../utils/helpers';
+import { slugify } from '../utils/helpers'; 
 
 export default function AdminPanel() {
     const navigate = useNavigate();
@@ -36,6 +36,7 @@ export default function AdminPanel() {
     const [exhibitionModal, setExhibitionModal] = useState({ open: false, mode: 'create', data: null });
     const [locationModal, setLocationModal] = useState({ open: false, mode: 'create', data: null });
     const [message, setMessage] = useState(null);
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         if (!isAuthenticated || !isAdmin) {
@@ -113,6 +114,7 @@ export default function AdminPanel() {
         e.preventDefault();
         setLoading(true);
         setMessage(null);
+        setErrors({});
 
         try {
             const formData = new FormData(e.target);
@@ -132,12 +134,33 @@ export default function AdminPanel() {
             } else {
                 data.slike_urls = [];
             }
+            const newErrors = {};
+            if (!data.naslov?.trim()) newErrors.naslov = 'Naslov je obavezan';
+            if (!data.id_lokacija) newErrors.id_lokacija = 'Lokacija je obavezna';
 
             const start = new Date(data.datum_pocetka);
+            const end = new Date(data.datum_zavrsetka);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            if (start < today) {
-                setMessage('Datum početka ne može biti u prošlosti');
+
+            if (!data.datum_pocetka) {
+                newErrors.datum_pocetka = 'Datum početka je obavezan';
+            } else if (exhibitionModal.mode === 'create' && start < today) {
+                newErrors.datum_pocetka = 'Datum početka ne može biti u prošlosti';
+            }
+
+            if (!data.datum_zavrsetka) {
+                newErrors.datum_zavrsetka = 'Datum završetka je obavezan';
+            } else if (data.datum_pocetka && end < start) {
+                newErrors.datum_zavrsetka = 'Datum završetka mora biti nakon datuma početka';
+            }
+
+            if (!data.kapacitet || data.kapacitet < 1) newErrors.kapacitet = 'Kapacitet mora biti pozitivan broj';
+            if (!data.osmislio?.trim()) newErrors.osmislio = 'Ovo polje je obavezno';
+            if (!data.thumbnail?.trim()) newErrors.thumbnail = 'Thumbnail je obavezan';
+
+            if (Object.keys(newErrors).length > 0) {
+                setErrors(newErrors);
                 setLoading(false);
                 return;
             }
@@ -539,134 +562,184 @@ export default function AdminPanel() {
 
             <Modal
                 isOpen={exhibitionModal.open}
-                onClose={() => setExhibitionModal({ open: false, mode: 'create', data: null })}
+                onClose={() => {
+                    setExhibitionModal({ open: false, mode: 'create', data: null });
+                    setErrors({});
+                }}
                 title={exhibitionModal.mode === 'create' ? 'Nova Izložba' : 'Izmeni Izložbu'}
                 size="lg"
             >
-                <form onSubmit={handleExhibitionSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <InputField
-                            label="Naslov"
-                            name="naslov"
-                            defaultValue={exhibitionModal.data?.naslov}
-                            onChange={(e) => {
-                                if (exhibitionModal.mode === 'create') {
-                                    const slugInput = document.getElementsByName('slug')[0];
-                                    if (slugInput) slugInput.value = e.target.value.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
-                                }
-                            }}
-                            required
-                        />
-                        <InputField
-                            label="Slug (URL identifikator)"
-                            name="slug"
-                            defaultValue={exhibitionModal.data?.slug}
-                            placeholder="moje-izlozba"
-                            required
-                        />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <InputField
-                            label="Thumbnail URL (Naslovna slika na kartici)"
-                            name="thumbnail"
-                            defaultValue={exhibitionModal.data?.thumbnail}
-                            placeholder="https://images.unsplash.com/..."
-                            required
-                        />
-                        <InputField
-                            label="Galerija slika (jedan URL po liniji)"
-                            name="slike_urls"
-                            defaultValue={exhibitionModal.data?.slike?.map(s => s.slika).join('\n')}
-                            textarea
-                            rows={2}
-                            placeholder="https://..."
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-luxury-silver">Lokacija</label>
-                        <select
-                            name="id_lokacija"
-                            className="w-full bg-luxury-black border border-luxury-gray text-white p-2 rounded focus:border-white focus:outline-none"
-                            defaultValue={exhibitionModal.data?.id_lokacija}
-                            required
-                        >
-                            {locations.map(loc => (
-                                <option key={loc.id_lokacija} value={loc.id_lokacija}>
-                                    {loc.naziv} ({loc.grad})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <InputField
-                            label="Datum početka"
-                            name="datum_pocetka"
-                            type="date"
-                            defaultValue={exhibitionModal.data?.datum_pocetka?.split('T')[0]}
-                            required
-                        />
-                        <InputField
-                            label="Datum završetka"
-                            name="datum_zavrsetka"
-                            type="date"
-                            defaultValue={exhibitionModal.data?.datum_zavrsetka?.split('T')[0]}
-                            required
-                        />
-                    </div>
-
-                    <InputField
-                        label="Opis"
-                        name="opis"
-                        defaultValue={exhibitionModal.data?.opis}
-                        textarea
-                        rows={3}
-                        required
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <InputField
-                            label="Kapacitet"
-                            name="kapacitet"
-                            type="number"
-                            defaultValue={exhibitionModal.data?.kapacitet}
-                            required
-                        />
-                        <InputField
-                            label="Osmislio"
-                            name="osmislio"
-                            defaultValue={exhibitionModal.data?.osmislio}
-                            required
-                        />
-                    </div>
-
-                    <div className="flex space-x-6 pt-2">
-                        <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                name="objavljeno"
-                                defaultChecked={exhibitionModal.mode === 'create' ? true : exhibitionModal.data?.objavljeno}
-                                className="form-checkbox text-accent-gold rounded bg-luxury-black border-luxury-gray"
+                <form onSubmit={handleExhibitionSubmit} className="space-y-6">
+                    <div className="bg-luxury-black/30 p-4 rounded-lg border border-luxury-gray/50">
+                        <h3 className="text-lg font-medium text-accent-gold mb-4 border-b border-accent-gold/20 pb-2">
+                            Osnovne Informacije
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <InputField
+                                label="Naslov"
+                                name="naslov"
+                                defaultValue={exhibitionModal.data?.naslov}
+                                onChange={(e) => {
+                                    if (exhibitionModal.mode === 'create') {
+                                        const slugInput = document.getElementsByName('slug')[0];
+                                        if (slugInput) slugInput.value = e.target.value.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+                                    }
+                                    setErrors(prev => ({ ...prev, naslov: null }));
+                                }}
+                                error={errors.naslov}
+                                required
                             />
-                            <span className="text-luxury-silver">Objavljeno</span>
+                            <InputField
+                                label="Slug (URL)"
+                                name="slug"
+                                defaultValue={exhibitionModal.data?.slug}
+                                placeholder="naziv-izlozbe"
+                                error={errors.slug}
+                                required
+                            />
+                        </div>
+                        <div className="mt-4">
+                            <label className="block text-sm font-medium text-luxury-light mb-2">
+                                Lokacija <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                name="id_lokacija"
+                                className={`w-full bg-luxury-dark border text-white p-3 rounded transition-colors focus:outline-none focus:border-white ${errors.id_lokacija ? 'border-red-500' : 'border-luxury-gray'}`}
+                                defaultValue={exhibitionModal.data?.id_lokacija}
+                                onChange={() => setErrors(prev => ({ ...prev, id_lokacija: null }))}
+                            >
+                                <option value="">Izaberite lokaciju...</option>
+                                {locations.map(loc => (
+                                    <option key={loc.id_lokacija} value={loc.id_lokacija}>
+                                        {loc.naziv} ({loc.grad})
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.id_lokacija && <p className="mt-1 text-sm text-red-500">{errors.id_lokacija}</p>}
+                        </div>
+
+                        <div className="mt-4">
+                            <InputField
+                                label="Opis"
+                                name="opis"
+                                defaultValue={exhibitionModal.data?.opis}
+                                textarea
+                                rows={3}
+                                required
+                                error={errors.opis}
+                                onChange={() => setErrors(prev => ({ ...prev, opis: null }))}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="bg-luxury-black/30 p-4 rounded-lg border border-luxury-gray/50">
+                        <h3 className="text-lg font-medium text-accent-gold mb-4 border-b border-accent-gold/20 pb-2">
+                            Detalji Događaja
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <InputField
+                                label="Datum početka"
+                                name="datum_pocetka"
+                                type="date"
+                                defaultValue={exhibitionModal.data?.datum_pocetka?.split('T')[0]}
+                                error={errors.datum_pocetka}
+                                required
+                                onChange={() => setErrors(prev => ({ ...prev, datum_pocetka: null }))}
+                            />
+                            <InputField
+                                label="Datum završetka"
+                                name="datum_zavrsetka"
+                                type="date"
+                                defaultValue={exhibitionModal.data?.datum_zavrsetka?.split('T')[0]}
+                                error={errors.datum_zavrsetka}
+                                required
+                                onChange={() => setErrors(prev => ({ ...prev, datum_zavrsetka: null }))}
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <InputField
+                                label="Kapacitet"
+                                name="kapacitet"
+                                type="number"
+                                defaultValue={exhibitionModal.data?.kapacitet}
+                                error={errors.kapacitet}
+                                required
+                                onChange={() => setErrors(prev => ({ ...prev, kapacitet: null }))}
+                            />
+                            <InputField
+                                label="Autor / Kustos"
+                                name="osmislio"
+                                defaultValue={exhibitionModal.data?.osmislio}
+                                error={errors.osmislio}
+                                required
+                                onChange={() => setErrors(prev => ({ ...prev, osmislio: null }))}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="bg-luxury-black/30 p-4 rounded-lg border border-luxury-gray/50">
+                        <h3 className="text-lg font-medium text-accent-gold mb-4 border-b border-accent-gold/20 pb-2">
+                            Media
+                        </h3>
+                        <div className="space-y-4">
+                            <InputField
+                                label="Thumbnail URL"
+                                name="thumbnail"
+                                defaultValue={exhibitionModal.data?.thumbnail}
+                                placeholder="https://..."
+                                error={errors.thumbnail}
+                                required
+                                onChange={() => setErrors(prev => ({ ...prev, thumbnail: null }))}
+                            />
+                            <InputField
+                                label="Galerija slika (jedan URL po liniji)"
+                                name="slike_urls"
+                                defaultValue={exhibitionModal.data?.slike?.map(s => s.slika).join('\n')}
+                                textarea
+                                rows={2}
+                                placeholder="https://..."
+                                helper="Poželjno barem 3 slike za puni doživljaj."
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-6 p-4 bg-luxury-black/30 rounded-lg border border-luxury-gray/50">
+                        <label className="flex items-center space-x-3 cursor-pointer group">
+                            <div className="relative flex items-center">
+                                <input
+                                    type="checkbox"
+                                    name="objavljeno"
+                                    defaultChecked={exhibitionModal.mode === 'create' ? true : exhibitionModal.data?.objavljeno}
+                                    className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-luxury-gray bg-luxury-dark checked:border-accent-gold checked:bg-accent-gold transition-all"
+                                />
+                                <FiCheck className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-black opacity-0 peer-checked:opacity-100" />
+                            </div>
+                            <span className="text-luxury-silver group-hover:text-white transition-colors">Javno Objavljeno</span>
                         </label>
-                        <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                name="aktivan"
-                                defaultChecked={exhibitionModal.data?.aktivan ?? true}
-                                className="form-checkbox text-accent-gold rounded bg-luxury-black border-luxury-gray"
-                            />
-                            <span className="text-luxury-silver">Aktivno</span>
+
+                        <label className="flex items-center space-x-3 cursor-pointer group">
+                            <div className="relative flex items-center">
+                                <input
+                                    type="checkbox"
+                                    name="aktivan"
+                                    defaultChecked={exhibitionModal.data?.aktivan ?? true}
+                                    className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-luxury-gray bg-luxury-dark checked:border-accent-gold checked:bg-accent-gold transition-all"
+                                />
+                                <FiCheck className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-black opacity-0 peer-checked:opacity-100" />
+                            </div>
+                            <span className="text-luxury-silver group-hover:text-white transition-colors">Aktivno (Prijave omogućene)</span>
                         </label>
                     </div>
 
                     <Modal.Footer>
-                        <CustomButton variant="ghost" onClick={() => setExhibitionModal({ open: false, mode: 'create', data: null })}>
+                        <CustomButton variant="ghost" onClick={() => {
+                            setExhibitionModal({ open: false, mode: 'create', data: null });
+                            setErrors({});
+                        }}>
                             Otkaži
                         </CustomButton>
                         <CustomButton type="submit" variant="gold" loading={loading}>
-                            Sačuvaj
+                            Sačuvaj Izložbu
                         </CustomButton>
                     </Modal.Footer>
                 </form>

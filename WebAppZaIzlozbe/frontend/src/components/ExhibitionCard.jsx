@@ -28,6 +28,7 @@ export default function ExhibitionCard({ exhibition }) {
         ? exhibition.thumbnail
         : (exhibition.slika_naslovna?.thumbnail || 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=400&auto=format&fit=crop');
 
+    const FALLBACK_THUMBNAIL = 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=400&auto=format&fit=crop';
     return (
         <Link
             to={`/izlozbe/${exhibition.slug || exhibition.id_izlozba}`}
@@ -40,6 +41,7 @@ export default function ExhibitionCard({ exhibition }) {
                     alt={exhibition.naslov}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     loading="lazy"
+                    onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_THUMBNAIL; }}
                 />
 
 
