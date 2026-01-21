@@ -38,7 +38,7 @@ export default function Profile() {
             navigate('/login', { state: { from: '/profil' } });
         }
     }, [isAuthenticated, navigate]);
-    
+
 
     useEffect(() => {
         const fetchRegistrations = async () => {

@@ -9,7 +9,7 @@ import { izlozbeAPI, lokacijeAPI, korisniciAPI, prijaveAPI } from '../services/a
 import CustomButton from '../components/ui/CustomButton';
 import Modal from '../components/ui/Modal';
 import InputField from '../components/ui/InputField';
-import { slugify } from '../utils/helpers'; 
+import { slugify } from '../utils/helpers';
 
 export default function AdminPanel() {
     const navigate = useNavigate();

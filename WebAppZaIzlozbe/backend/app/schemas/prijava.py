@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field
 from app.schemas.izlozba import IzlozbaResponse
 
 
-
 class PrijavaBase(BaseModel):
 
     id_izlozba: int

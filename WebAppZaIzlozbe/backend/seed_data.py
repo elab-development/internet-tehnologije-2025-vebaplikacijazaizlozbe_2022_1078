@@ -24,13 +24,7 @@ def seed_database():
         
         Base.metadata.create_all(bind=engine)
 
-        osoblje_user = db.query(Korisnik).filter(Korisnik.username == "osoblje").first()
-        if osoblje_user:
-            print("Brisanje zaostalog 'osoblje' korisnika...")
-            db.delete(osoblje_user)
-            db.commit()
-
-        if db.query(Korisnik).count() > 0 and not osoblje_user:
+        if db.query(Korisnik).count() > 0:
             print("Podaci već postoje.")
             return
         
