@@ -10,6 +10,8 @@ import logging
 from app.config import settings
 from app.database import engine, Base
 from app.routers import auth, korisnici, lokacije, izlozbe, slike, prijave
+from fastapi.staticfiles import StaticFiles
+import os
 
 # Konfigurisanje logging-a
 logging.basicConfig(
@@ -67,6 +69,11 @@ app.include_router(lokacije.router)
 app.include_router(izlozbe.router)
 app.include_router(slike.router)
 app.include_router(prijave.router)
+
+static_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+os.makedirs(static_path, exist_ok=True)
+app.mount("/static", StaticFiles(directory=static_path), name="static")
+
 
 @app.get("/", tags=["Root"])
 async def root():

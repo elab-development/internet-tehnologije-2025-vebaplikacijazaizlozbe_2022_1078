@@ -1,6 +1,6 @@
 from typing import List, Optional
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Form, File, UploadFile
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from app.database import get_db
@@ -11,6 +11,8 @@ from app.schemas.izlozba import (
     IzlozbaCreate, IzlozbaUpdate, IzlozbaResponse, IzlozbaListResponse
 )
 from app.utils.dependencies import get_current_admin
+from app.utils.file_upload import save_upload_file, save_upload_files
+
 
 router = APIRouter(prefix="/api/izlozbe", tags=["Izložbe"])
 
@@ -126,12 +128,24 @@ async def get_izlozba(
 
 @router.post("/", response_model=IzlozbaResponse, status_code=status.HTTP_201_CREATED)
 async def create_izlozba(
-    izlozba: IzlozbaCreate,
+    naslov: str = Form(...),
+    slug: str = Form(...),
+    id_lokacija: int = Form(...),
+    datum_pocetka: date = Form(...),
+    datum_zavrsetka: date = Form(...),
+    kapacitet: int = Form(100),
+    opis: Optional[str] = Form(None),
+    kratak_opis: Optional[str] = Form(None),
+    osmislio: Optional[str] = Form(None),
+    aktivan: bool = Form(True),
+    objavljeno: bool = Form(False),
+    thumbnail_file: UploadFile = File(...),
+    slike_files: List[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: Korisnik = Depends(get_current_admin)
 ):
     lokacija = db.query(Lokacija).filter(
-        Lokacija.id_lokacija == izlozba.id_lokacija
+        Lokacija.id_lokacija == id_lokacija
     ).first()
     
     if not lokacija:
@@ -140,33 +154,46 @@ async def create_izlozba(
             detail="Lokacija ne postoji"
         )
     
-    existing_slug = db.query(Izlozba).filter(Izlozba.slug == izlozba.slug).first()
+    existing_slug = db.query(Izlozba).filter(Izlozba.slug == slug).first()
     if existing_slug:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Izložba sa ovim slugom već postoji"
         )
     
-    izlozba_data = izlozba.model_dump()
-    slike_urls = izlozba_data.pop("slike_urls", [])
+    thumbnail_path = await save_upload_file(thumbnail_file)
     
-    db_izlozba = Izlozba(**izlozba_data)
+    db_izlozba = Izlozba(
+        naslov=naslov,
+        slug=slug,
+        id_lokacija=id_lokacija,
+        datum_pocetka=datum_pocetka,
+        datum_zavrsetka=datum_zavrsetka,
+        kapacitet=kapacitet,
+        opis=opis,
+        kratak_opis=kratak_opis,
+        osmislio=osmislio,
+        aktivan=aktivan,
+        objavljeno=objavljeno,
+        thumbnail=thumbnail_path
+    )
     db.add(db_izlozba)
     db.commit()
     db.refresh(db_izlozba)
     
-    from app.models.slika import Slika
-    for url in slike_urls:
-        if url.strip():
+    if slike_files:
+        from app.models.slika import Slika
+        saved_paths = await save_upload_files(slike_files)
+        
+        for path in saved_paths:
             nova_slika = Slika(
-                slika=url,
-                thumbnail=url, 
+                slika=path,
+                thumbnail=path,
                 id_izlozba=db_izlozba.id_izlozba,
                 naslov=db_izlozba.naslov
             )
             db.add(nova_slika)
-    
-    if slike_urls:
+        
         db.commit()
         db.refresh(db_izlozba)
     
@@ -176,7 +203,19 @@ async def create_izlozba(
 @router.put("/{izlozba_id}", response_model=IzlozbaResponse)
 async def update_izlozba(
     izlozba_id: int,
-    izlozba_update: IzlozbaUpdate,
+    naslov: Optional[str] = Form(None),
+    slug: Optional[str] = Form(None),
+    id_lokacija: Optional[int] = Form(None),
+    datum_pocetka: Optional[date] = Form(None),
+    datum_zavrsetka: Optional[date] = Form(None),
+    kapacitet: Optional[int] = Form(None),
+    opis: Optional[str] = Form(None),
+    kratak_opis: Optional[str] = Form(None),
+    osmislio: Optional[str] = Form(None),
+    aktivan: Optional[bool] = Form(None),
+    objavljeno: Optional[bool] = Form(None),
+    thumbnail_file: Optional[UploadFile] = File(None),
+    slike_files: List[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: Korisnik = Depends(get_current_admin)
 ):
@@ -190,41 +229,49 @@ async def update_izlozba(
             detail="Izložba nije pronađena"
         )
     
-    update_data = izlozba_update.model_dump(exclude_unset=True)
-    slike_urls = update_data.pop("slike_urls", None)
-    
-    if "slug" in update_data and update_data["slug"] != izlozba.slug:
-        existing_slug = db.query(Izlozba).filter(Izlozba.slug == update_data["slug"]).first()
+    if slug and slug != izlozba.slug:
+        existing_slug = db.query(Izlozba).filter(Izlozba.slug == slug).first()
         if existing_slug:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Izložba sa ovim slugom već postoji"
             )
-
-    if "kapacitet" in update_data:
+            
+    if kapacitet is not None:
         ukupno_prijava = sum(p.broj_karata for p in izlozba.prijave)
-        if update_data["kapacitet"] < ukupno_prijava:
+        if kapacitet < ukupno_prijava:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Kapacitet ne može biti manji od broja prijava ({ukupno_prijava})"
             )
+
+    if naslov: izlozba.naslov = naslov
+    if slug: izlozba.slug = slug
+    if id_lokacija: izlozba.id_lokacija = id_lokacija
+    if datum_pocetka: izlozba.datum_pocetka = datum_pocetka
+    if datum_zavrsetka: izlozba.datum_zavrsetka = datum_zavrsetka
+    if kapacitet: izlozba.kapacitet = kapacitet
+    if opis: izlozba.opis = opis
+    if kratak_opis: izlozba.kratak_opis = kratak_opis
+    if osmislio: izlozba.osmislio = osmislio
+    if aktivan is not None: izlozba.aktivan = aktivan
+    if objavljeno is not None: izlozba.objavljeno = objavljeno
     
-    for field, value in update_data.items():
-        setattr(izlozba, field, value)
-    
-    if slike_urls is not None:
-        from app.models.slika import Slika
-        db.query(Slika).filter(Slika.id_izlozba == izlozba_id).delete()
+    if thumbnail_file:
+        izlozba.thumbnail = await save_upload_file(thumbnail_file)
         
-        for url in slike_urls:
-            if url.strip():
-                nova_slika = Slika(
-                    slika=url,
-                    thumbnail=url,
-                    id_izlozba=izlozba_id,
-                    naslov=izlozba.naslov
-                )
-                db.add(nova_slika)
+    if slike_files:
+        from app.models.slika import Slika
+
+        saved_paths = await save_upload_files(slike_files)
+        for path in saved_paths:
+            nova_slika = Slika(
+                slika=path,
+                thumbnail=path,
+                id_izlozba=izlozba_id,
+                naslov=izlozba.naslov
+            )
+            db.add(nova_slika)
 
     db.commit()
     db.refresh(izlozba)

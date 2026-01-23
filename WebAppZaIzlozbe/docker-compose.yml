@@ -42,6 +42,8 @@ services:
         condition: service_healthy
     networks:
       - izlozbe_network
+    volumes:
+      - ./backend/static:/app/static
     restart: unless-stopped
 
   # React
@@ -58,7 +60,7 @@ services:
       - izlozbe_network
     restart: unless-stopped
 
-  # pgAdmin
+  # pgAdmin user:admin@admin.com pass:admin
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: izlozbe_pgadmin

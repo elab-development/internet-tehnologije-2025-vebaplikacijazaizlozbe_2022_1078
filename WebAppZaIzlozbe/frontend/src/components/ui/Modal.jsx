@@ -60,10 +60,11 @@ export default function Modal({
           bg-luxury-dark border border-luxury-gray
           shadow-luxury
           animate-scale-in
+          flex flex-col max-h-[90vh]
         `}
             >
                 {(title || showCloseButton) && (
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-luxury-gray">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-luxury-gray flex-shrink-0">
                         {title && (
                             <h2 className="text-xl font-display font-semibold text-white">
                                 {title}
@@ -80,7 +81,7 @@ export default function Modal({
                     </div>
                 )}
 
-                <div className="px-6 py-4">
+                <div className="px-6 py-4 overflow-y-auto">
                     {children}
                 </div>
             </div>
