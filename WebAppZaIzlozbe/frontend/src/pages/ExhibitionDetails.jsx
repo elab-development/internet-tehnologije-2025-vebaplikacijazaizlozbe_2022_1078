@@ -55,12 +55,15 @@ export default function ExhibitionDetails() {
     }, [slug]);
 
 
-    const handleRegister = async () => {
+    const handleRegisterClick = () => {
         if (!isAuthenticated) {
-            navigate('/login', { state: { from: `/izlozbe/${id}` } });
+            navigate('/login', { state: { from: `/izlozbe/${slug}` } });
             return;
         }
+        setShowModal(true);
+    };
 
+    const handleRegister = async () => {
         try {
             setRegistering(true);
             setRegisterError(null);
@@ -210,7 +213,7 @@ export default function ExhibitionDetails() {
                                     <CustomButton
                                         variant="gold"
                                         fullWidth
-                                        onClick={() => setShowModal(true)}
+                                        onClick={handleRegisterClick}
                                     >
                                         Prijavi se
                                     </CustomButton>
