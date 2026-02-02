@@ -1,5 +1,8 @@
 import sys
 import os
+import httpx
+import re
+import random
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from datetime import datetime, date, timedelta
@@ -8,6 +11,33 @@ from app.models import Korisnik, Lokacija, Slika, Izlozba, Prijava
 from app.utils.security import get_password_hash
 
 Base.metadata.create_all(bind=engine)
+
+def clean_html(raw_html):
+    if not raw_html: return ""
+    cleanr = re.compile('<.*?>')
+    cleantext = re.sub(cleanr, '', raw_html)
+    return cleantext[:500] if cleantext else ""
+
+def fetch_artic_artwork(query, limit=1):
+    try:
+        url = "https://api.artic.edu/api/v1/artworks/search"
+        params = {
+            "q": query,
+            "fields": "id,title,image_id,artist_display,description,short_description,date_display",
+            "limit": limit + 2,
+            "page": 1
+        }
+        response = httpx.get(url, params=params, timeout=15.0)
+        response.raise_for_status()
+        data = response.json()
+        results = [art for art in data.get('data', []) if art.get('image_id')]
+        return results[:limit]
+    except Exception as e:
+        print(f"Greška prilikom preuzimanja sa Artic API za '{query}': {e}")
+        return []
+
+def get_image_url(image_id, size=843):
+    return f"https://www.artic.edu/iiif/2/{image_id}/full/{size},/0/default.jpg"
 
 def seed_database():
     db = SessionLocal()
@@ -108,89 +138,67 @@ def seed_database():
         db.commit()
         print("✓ Lokacije kreirane")
         
-        slike = [
-            Slika(
-                slika="https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=1000&auto=format&fit=crop",
-                thumbnail="https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=400&auto=format&fit=crop",
-                naslov="American Gothic",
-                opis="Jedno od najpoznatijih dela američke umetnosti",
-                fotograf="Grant Wood",
-                datum_otpremanja=datetime.utcnow(),
-                istaknuta=True,
-                naslovna=True,
-                redosled=1
-            ),
-            Slika(
-                slika="https://images.unsplash.com/photo-1576016773942-0040248e1a48?q=80&w=1000&auto=format&fit=crop",
-                thumbnail="https://images.unsplash.com/photo-1576016773942-0040248e1a48?q=80&w=400&auto=format&fit=crop",
-                naslov="A Sunday on La Grande Jatte",
-                opis="Remek delo neoimpresionizma",
-                fotograf="Georges Seurat",
-                datum_otpremanja=datetime.utcnow(),
-                istaknuta=True,
-                naslovna=False,
-                redosled=2
-            ),
-            Slika(
-                slika="https://images.unsplash.com/photo-1543857778-c4a1a3e0b2eb?q=80&w=1000&auto=format&fit=crop",
-                thumbnail="https://images.unsplash.com/photo-1543857778-c4a1a3e0b2eb?q=80&w=400&auto=format&fit=crop",
-                naslov="Nighthawks",
-                opis="Ikonična slika američkog realizma",
-                fotograf="Edward Hopper",
-                datum_otpremanja=datetime.utcnow(),
-                istaknuta=True,
-                naslovna=False,
-                redosled=3
-            ),
-            Slika(
-                slika="https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?q=80&w=1000&auto=format&fit=crop",
-                thumbnail="https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?q=80&w=400&auto=format&fit=crop",
-                naslov="The Bedroom",
-                opis="Van Goghova soba u Arlu",
-                fotograf="Vincent van Gogh",
-                datum_otpremanja=datetime.utcnow(),
-                istaknuta=False,
-                naslovna=False,
-                redosled=4
-            ),
-            Slika(
-                slika="https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?q=80&w=1000&auto=format&fit=crop",
-                thumbnail="https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?q=80&w=400&auto=format&fit=crop",
-                naslov="Abstract Harmony",
-                opis="Studija boja i oblika",
-                fotograf="Wassily Kandinsky",
-                datum_otpremanja=datetime.utcnow(),
-                istaknuta=False,
-                naslovna=False,
-                redosled=5
-            ),
-            Slika(
-                slika="https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=1000&auto=format&fit=crop",
-                thumbnail="https://images.unsplash.com/photo-1549490349-8643362247b5?q=80&w=400&auto=format&fit=crop",
-                naslov="The Persistence of Memory",
-                opis="Nadrealističko remek delo",
-                fotograf="Salvador Dali",
-                datum_otpremanja=datetime.utcnow(),
-                istaknuta=False,
-                naslovna=False,
-                redosled=6
-            ),
-            Slika(
-                slika="https://images.unsplash.com/photo-1580136906911-37d46532454a?q=80&w=1000&auto=format&fit=crop",
-                thumbnail="https://images.unsplash.com/photo-1580136906911-37d46532454a?q=80&w=400&auto=format&fit=crop",
-                naslov="Girl with a Pearl Earring",
-                opis="Holandsko zlatno doba",
-                fotograf="Johannes Vermeer",
-                datum_otpremanja=datetime.utcnow(),
-                istaknuta=False,
-                naslovna=False,
-                redosled=7
-            )
+        print("Preuzimanje slika sa Artic API...")
+        
+        queries = [
+            "Grant Wood",
+            "Seurat",
+            "Edward Hopper", 
+            "Van Gogh",      
+            "Kandinsky",     
+            "Salvador Dali", 
+            "landscape"      
         ]
         
+        slike = []
+        
+        def create_slika_obj(art_data, order, istaknuta=False, naslovna=False):
+            if not art_data:
+                return Slika(
+                    slika="https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?auto=format&fit=crop&q=80&w=1000",
+                    thumbnail="https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?auto=format&fit=crop&q=80&w=400",
+                    naslov="Umetničko delo (Nije pronađeno)",
+                    opis="Slika nije dostupna.",
+                    fotograf="Nepoznat",
+                    datum_otpremanja=datetime.utcnow(),
+                    istaknuta=istaknuta,
+                    naslovna=naslovna,
+                    redosled=order
+                )
+            
+            desc = art_data.get('description') or art_data.get('short_description') or "Umetničko delo iz Artic kolekcije."
+            clean_desc = clean_html(desc)
+            
+            naslov = art_data.get('title', 'Bez naslova')[:250]
+            artist = art_data.get('artist_display', 'Nepoznat umetnik')
+            artist = artist.split('\n')[0][:190]
+
+            return Slika(
+                slika=get_image_url(art_data['image_id']),
+                thumbnail=get_image_url(art_data['image_id'], 400),
+                naslov=naslov,
+                opis=clean_desc,
+                fotograf=artist,
+                datum_otpremanja=datetime.utcnow(),
+                istaknuta=istaknuta,
+                naslovna=naslovna,
+                redosled=order
+            )
+
+        for i, q in enumerate(queries):
+            res = fetch_artic_artwork(q, 1)
+            art_data = res[0] if res else None
+            
+            slike.append(create_slika_obj(
+                art_data,
+                order=i+1,
+                istaknuta=(i < 3),
+                naslovna=(i == 0)
+            ))
+            
         db.add_all(slike)
         db.commit()
-        print("✓ Slike kreirane")
+        print(f"✓ Kreirano {len(slike)} osnovnih slika iz Artic API")
         
         today = date.today()
         
@@ -198,7 +206,7 @@ def seed_database():
             Izlozba(
                 naslov="Van Gogh: Boje emocija",
                 slug="van-gogh-boje-emocija",
-                opis="Ekskluzivna retrospektiva Van Goghovih dela, fokusirana na njegov period u Arlu. Izložba prikazuje emocionalnu dubinu i intenzitet boja karakterističnih za postimpresionizam.",
+                opis="Ekskluzivna retrospektiva Van Goghovih dela, fokusirana na njegov period u Arlu.",
                 kratak_opis="Ekskluzivna retrospektiva Van Goghovih dela",
                 datum_pocetka=date(2026, 1, 19),
                 datum_zavrsetka=date(2026, 4, 19),
@@ -214,7 +222,7 @@ def seed_database():
             Izlozba(
                 naslov="Impresionizam i neoimpresionizam",
                 slug="impresionizam-i-neoimpresionizam",
-                opis="Od Monea do Seurata - evolucija svetlosti u slikarstvu. Istražite kako su umetnici manipulisali svetlošću i bojom da stvore nezaboravne scene prirode i urbanog života.",
+                opis="Od Monea do Seurata - evolucija svetlosti u slikarstvu.",
                 kratak_opis="Od Monea do Seurata - evolucija svetlosti u slikarstvu",
                 datum_pocetka=date(2025, 12, 27),
                 datum_zavrsetka=date(2026, 3, 20),
@@ -230,7 +238,7 @@ def seed_database():
             Izlozba(
                 naslov="Američki realizam XX veka",
                 slug="americki-realizam-20-veka",
-                opis="Istraživanje američkog realizma kroz ikonična dela XX veka. Od usamljenosti Edwarda Hoppera do ruralnih scena Granta Wooda.",
+                opis="Istraživanje američkog realizma kroz ikonična dela XX veka.",
                 kratak_opis="Istraživanje američkog realizma kroz ikonična dela XX veka",
                 datum_pocetka=date(2025, 12, 20),
                 datum_zavrsetka=date(2026, 2, 18),
@@ -262,7 +270,7 @@ def seed_database():
             Izlozba(
                 naslov="Nadrealizam u fokusu",
                 slug="nadrealizam-u-fokusu",
-                opis="Istražite snove i podsvest kroz dela Salvadora Dalija i drugih nadrealista. Izložba koja izaziva percepciju.",
+                opis="Istražite snove i podsvest kroz dela Salvadora Dalija i drugih nadrealista.",
                 kratak_opis="Snovi i podsvest kroz dela nadrealista",
                 datum_pocetka=date(2026, 3, 10),
                 datum_zavrsetka=date(2026, 6, 10),
@@ -278,7 +286,7 @@ def seed_database():
             Izlozba(
                 naslov="Fotografija Niškog kraja",
                 slug="fotografija-niskog-kraja",
-                opis="Ekskluzivna izložba fotografija koje prikazuju lepotu i tradiciju Niškog kraja. Od Niške tvrđave do živopisnih pejzaža.",
+                opis="Ekskluzivna izložba.",
                 kratak_opis="Otkrijte lepotu Niša kroz objektiv lokalnih fotografa",
                 datum_pocetka=date(2026, 2, 1),
                 datum_zavrsetka=date(2026, 4, 30),
@@ -294,8 +302,8 @@ def seed_database():
             Izlozba(
                 naslov="Industrijsko Nasleđe Šumadije",
                 slug="industrijsko-nasledje-sumadije",
-                opis="Fotografska dokumentacija industrijskog razvoja Kragujevca i Šumadije. Od Zastave do savremene industrije.",
-                kratak_opis="Industrijsko nasleđe regiona kroz fotografiju",
+                opis="Dokumentacija industrijskog razvoja.",
+                kratak_opis="Industrijsko nasleđe regiona",
                 datum_pocetka=date(2026, 1, 15),
                 datum_zavrsetka=date(2026, 3, 15),
                 id_lokacija=lokacije[4].id_lokacija,
@@ -312,40 +320,43 @@ def seed_database():
         db.add_all(izlozbe)
         db.commit()
         
-        unsplash_ids = [
-            "1545989254-660df955dbd6", "1576016773942-0040248e1a48", "1551913902-1322fc692c27",
-            "1536924940846-227afb31e215", "1569407334754-1b31f8af84ec", "1580136906911-37d46532454a",
-            "1577720580479-7d839d829c73", "1515405295579-ba7a4592924a", "1550684848-fac1c5b4e853",
-            "1578301978693-85fa9c0320b9", "1547826039-bfc35e0f1ea8", "1578925518479-0af2e572e969",
-            "1577083552431-6e5fd01988ec", "1549490349-8643362247b5", "1577083288073-40892c0860a4",
-            "1518998053901-5348d3969104", "1579783902614-a3fb3927b6a5", "1576506542790-51244b486a6b"
-        ]
+        print("Preuzimanje dodatnih slika za galerije...")
+        extra_artworks = fetch_artic_artwork("artwork", 30)
+        
+        if not extra_artworks:
+            print("Upozorenje: Nisu pronađene dodatne slike.")
         
         for i, izlo in enumerate(izlozbe):
-            img1_id = unsplash_ids[(i * 2) % len(unsplash_ids)]
-            img2_id = unsplash_ids[(i * 2 + 1) % len(unsplash_ids)]
-            
+            if extra_artworks:
+                art1 = extra_artworks[(i * 2) % len(extra_artworks)]
+                art2 = extra_artworks[(i * 2 + 1) % len(extra_artworks)]
+            else:
+                art1, art2 = None, None
+
             dodatne_slike = [
-                Slika(
-                    slika=f"https://images.unsplash.com/photo-{img1_id}?auto=format&fit=crop&q=80&w=1000",
-                    thumbnail=f"https://images.unsplash.com/photo-{img1_id}?auto=format&fit=crop&q=80&w=400",
-                    naslov=f"Eksponat {i+1}-A",
-                    id_izlozba=izlo.id_izlozba
-                ),
-                Slika(
-                    slika=f"https://images.unsplash.com/photo-{img2_id}?auto=format&fit=crop&q=80&w=1000",
-                    thumbnail=f"https://images.unsplash.com/photo-{img2_id}?auto=format&fit=crop&q=80&w=400",
-                    naslov=f"Eksponat {i+1}-B",
-                    id_izlozba=izlo.id_izlozba
-                )
+                 create_slika_obj(art1, order=10 + i) if art1 else Slika(
+                     slika="https://via.placeholder.com/1000",
+                     thumbnail="https://via.placeholder.com/400",
+                     naslov=f"Eksponat A",
+                     id_izlozba=izlo.id_izlozba
+                 ),
+                 create_slika_obj(art2, order=11 + i) if art2 else Slika(
+                     slika="https://via.placeholder.com/1000",
+                     thumbnail="https://via.placeholder.com/400",
+                     naslov=f"Eksponat B",
+                     id_izlozba=izlo.id_izlozba
+                 )
             ]
+            for ds in dodatne_slike:
+                ds.id_izlozba = izlo.id_izlozba
+                
             db.add_all(dodatne_slike)
         
         db.commit()
         print("✓ Izložbe kreirane")
         
         print("\n" + "="*50)
-        print("Test podaci uspešno kreirani!")
+        print("Test podaci uspešno kreirani (koristeći Artic API)!")
         print("="*50)
         print("\nKorisnički nalozi:")
         print("  Admin:    admin / admin123")
@@ -357,7 +368,6 @@ def seed_database():
         db.rollback()
     finally:
         db.close()
-
 
 if __name__ == "__main__":
     seed_database()
