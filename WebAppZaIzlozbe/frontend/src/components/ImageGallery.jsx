@@ -78,7 +78,7 @@ export default function ImageGallery({ images = [] }) {
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             loading="lazy"
                             onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
-                            referrerPolicy="no-referrer"
+                            crossOrigin="anonymous"
                         />
 
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
@@ -123,7 +123,7 @@ export default function ImageGallery({ images = [] }) {
                             alt={images[currentIndex]?.naslov || `Slika ${currentIndex + 1}`}
                             className="max-w-full max-h-[85vh] object-contain animate-fade-in"
                             onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
-                            referrerPolicy="no-referrer"
+                            crossOrigin="anonymous"
                         />
 
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">

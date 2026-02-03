@@ -3,6 +3,7 @@ import os
 import httpx
 import re
 import random
+import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from datetime import datetime, date, timedelta
@@ -18,26 +19,23 @@ def clean_html(raw_html):
     cleantext = re.sub(cleanr, '', raw_html)
     return cleantext[:500] if cleantext else ""
 
-def fetch_artic_artwork(query, limit=1):
+def fetch_artic_artwork_by_id(artwork_id):
     try:
-        url = "https://api.artic.edu/api/v1/artworks/search"
+        url = f"https://api.artic.edu/api/v1/artworks/{artwork_id}"
         params = {
-            "q": query,
-            "fields": "id,title,image_id,artist_display,description,short_description,date_display",
-            "limit": limit + 2,
-            "page": 1
+            "fields": "id,title,image_id,artist_display,description,short_description,date_display"
         }
         response = httpx.get(url, params=params, timeout=15.0)
         response.raise_for_status()
         data = response.json()
-        results = [art for art in data.get('data', []) if art.get('image_id')]
-        return results[:limit]
+        return data.get('data')
     except Exception as e:
-        print(f"Greška prilikom preuzimanja sa Artic API za '{query}': {e}")
-        return []
+        print(f"Greška prilikom preuzimanja Artic ID {artwork_id}: {e}")
+        return None
 
-def get_image_url(image_id, size=843):
-    return f"https://www.artic.edu/iiif/2/{image_id}/full/{size},/0/default.jpg"
+def get_image_url(image_id, size="843,"):
+    if not image_id: return ""
+    return f"https://www.artic.edu/iiif/2/{image_id}/full/{size}/0/default.jpg"
 
 def seed_database():
     db = SessionLocal()
@@ -54,10 +52,6 @@ def seed_database():
         
         Base.metadata.create_all(bind=engine)
 
-        if db.query(Korisnik).count() > 0:
-            print("Podaci već postoje.")
-            return
-        
         print("Kreiranje test podataka...")
         
         admin = Korisnik(
@@ -138,44 +132,39 @@ def seed_database():
         db.commit()
         print("✓ Lokacije kreirane")
         
-        print("Preuzimanje slika sa Artic API...")
-        
-        queries = [
-            "Grant Wood",
-            "Seurat",
-            "Edward Hopper", 
-            "Van Gogh",      
-            "Kandinsky",     
-            "Salvador Dali", 
-            "landscape"      
-        ]
+        print("Dohvatanje garantovanih slika sa Artic API...")
+        pouzdani_id_evi = [27953, 23708, 24645, 129884, 111623, 229342, 16568]
         
         slike = []
         
         def create_slika_obj(art_data, order, istaknuta=False, naslovna=False):
-            if not art_data:
+            if not art_data or not art_data.get('image_id'):
                 return Slika(
                     slika="https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?auto=format&fit=crop&q=80&w=1000",
                     thumbnail="https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?auto=format&fit=crop&q=80&w=400",
-                    naslov="Umetničko delo (Nije pronađeno)",
-                    opis="Slika nije dostupna.",
+                    naslov="Umetničko delo",
+                    opis="Slika privremeno nedostupna.",
                     fotograf="Nepoznat",
                     datum_otpremanja=datetime.utcnow(),
                     istaknuta=istaknuta,
                     naslovna=naslovna,
                     redosled=order
                 )
+
+            image_id = art_data['image_id']
+            slika_url = get_image_url(image_id, "843,")
+            thumb_url = get_image_url(image_id, "400,")
             
             desc = art_data.get('description') or art_data.get('short_description') or "Umetničko delo iz Artic kolekcije."
-            clean_desc = clean_html(desc)
-            
             naslov = art_data.get('title', 'Bez naslova')[:250]
             artist = art_data.get('artist_display', 'Nepoznat umetnik')
+            
+            clean_desc = clean_html(desc)
             artist = artist.split('\n')[0][:190]
 
             return Slika(
-                slika=get_image_url(art_data['image_id']),
-                thumbnail=get_image_url(art_data['image_id'], 400),
+                slika=slika_url,
+                thumbnail=thumb_url,
                 naslov=naslov,
                 opis=clean_desc,
                 fotograf=artist,
@@ -185,10 +174,8 @@ def seed_database():
                 redosled=order
             )
 
-        for i, q in enumerate(queries):
-            res = fetch_artic_artwork(q, 1)
-            art_data = res[0] if res else None
-            
+        for i, aid in enumerate(pouzdani_id_evi):
+            art_data = fetch_artic_artwork_by_id(aid)
             slike.append(create_slika_obj(
                 art_data,
                 order=i+1,
@@ -199,8 +186,6 @@ def seed_database():
         db.add_all(slike)
         db.commit()
         print(f"✓ Kreirano {len(slike)} osnovnih slika iz Artic API")
-        
-        today = date.today()
         
         izlozbe = [
             Izlozba(
@@ -320,51 +305,36 @@ def seed_database():
         db.add_all(izlozbe)
         db.commit()
         
-        print("Preuzimanje dodatnih slika za galerije...")
-        extra_artworks = fetch_artic_artwork("artwork", 30)
-        
-        if not extra_artworks:
-            print("Upozorenje: Nisu pronađene dodatne slike.")
-        
+        print("Popunjavanje galerija (koristeći garantovane slike)...")
         for i, izlo in enumerate(izlozbe):
-            if extra_artworks:
-                art1 = extra_artworks[(i * 2) % len(extra_artworks)]
-                art2 = extra_artworks[(i * 2 + 1) % len(extra_artworks)]
-            else:
-                art1, art2 = None, None
-
-            dodatne_slike = [
-                 create_slika_obj(art1, order=10 + i) if art1 else Slika(
-                     slika="https://via.placeholder.com/1000",
-                     thumbnail="https://via.placeholder.com/400",
-                     naslov=f"Eksponat A",
-                     id_izlozba=izlo.id_izlozba
-                 ),
-                 create_slika_obj(art2, order=11 + i) if art2 else Slika(
-                     slika="https://via.placeholder.com/1000",
-                     thumbnail="https://via.placeholder.com/400",
-                     naslov=f"Eksponat B",
-                     id_izlozba=izlo.id_izlozba
-                 )
-            ]
-            for ds in dodatne_slike:
-                ds.id_izlozba = izlo.id_izlozba
-                
-            db.add_all(dodatne_slike)
+            naslovna_idx = [3, 1, 2, 4, 5, 6, 0][i]
+            naslovna = slike[naslovna_idx]
+            
+            db.add(Slika(
+                slika=naslovna.slika, thumbnail=naslovna.thumbnail,
+                naslov=naslovna.naslov, opis=naslovna.opis, fotograf=naslovna.fotograf,
+                istaknuta=True, naslovna=True, redosled=0, id_izlozba=izlo.id_izlozba
+            ))
+            
+            pool = [s for j, s in enumerate(slike) if j != naslovna_idx]
+            selected = random.sample(pool, 2)
+            
+            for k, sl in enumerate(selected):
+                db.add(Slika(
+                    slika=sl.slika, thumbnail=sl.thumbnail,
+                    naslov=sl.naslov, opis=sl.opis, fotograf=sl.fotograf,
+                    istaknuta=False, naslovna=False, redosled=k+1, id_izlozba=izlo.id_izlozba
+                ))
+            
+            db.commit()
         
-        db.commit()
-        print("✓ Izložbe kreirane")
-        
-        print("\n" + "="*50)
-        print("Test podaci uspešno kreirani (koristeći Artic API)!")
-        print("="*50)
-        print("\nKorisnički nalozi:")
-        print("  Admin:    admin / admin123")
-        print("  Korisnik: marko / marko123")
+        print("Izložbe i galerije uspešno kreirane!")
         print("="*50)
         
     except Exception as e:
-        print(f"Greška: {e}")
+        print(f"Kritična greška: {e}")
+        import traceback
+        traceback.print_exc()
         db.rollback()
     finally:
         db.close()
