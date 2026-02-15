@@ -44,6 +44,7 @@ services:
       - izlozbe_network
     volumes:
       - ./backend/static:/app/static
+      - ./backend/public:/app/public
     restart: unless-stopped
 
   # React

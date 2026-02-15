@@ -70,6 +70,10 @@ app.include_router(izlozbe.router)
 app.include_router(slike.router)
 app.include_router(prijave.router)
 
+images_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "public", "images")
+os.makedirs(images_path, exist_ok=True)
+app.mount("/images", StaticFiles(directory=images_path), name="images")
+
 static_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 os.makedirs(static_path, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_path), name="static")

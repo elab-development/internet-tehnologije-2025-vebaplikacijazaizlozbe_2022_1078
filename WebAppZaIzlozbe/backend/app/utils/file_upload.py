@@ -5,7 +5,7 @@ from datetime import datetime
 from fastapi import UploadFile
 from typing import List
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "static", "images")
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "public", "images")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 async def save_upload_file(file: UploadFile) -> str:
@@ -18,7 +18,7 @@ async def save_upload_file(file: UploadFile) -> str:
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
-    return f"/static/images/{unique_filename}"
+    return f"/images/{unique_filename}"
 
 async def save_upload_files(files: List[UploadFile]) -> List[str]:
 
