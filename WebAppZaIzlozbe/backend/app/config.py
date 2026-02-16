@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     
     # Art Institute of Chicago API
     ARTIC_API_BASE_URL: str = "https://api.artic.edu/api/v1"
+
+    # Mailsend API
+    MAILERSEND_API_KEY: str = "mlsn.bd640940950c7f30835e9ee8dc887bbf032824eb3dbf5b63f05b64268d0b971b"
+    MAILERSEND_FROM_EMAIL: str = "info@test-r6ke4n1jjpegon12.mlsender.net"
+    MAILERSEND_FROM_NAME: str = "Galerija"
     
     @property
     def cors_origins_list(self) -> List[str]:

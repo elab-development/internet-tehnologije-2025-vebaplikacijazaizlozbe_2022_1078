@@ -35,6 +35,9 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
       CORS_ORIGINS: http://localhost,http://localhost:80,http://localhost:5173,http://192.168.1.66
       ARTIC_API_BASE_URL: https://api.artic.edu/api/v1
+      MAILERSEND_API_KEY: mlsn.bd640940950c7f30835e9ee8dc887bbf032824eb3dbf5b63f05b64268d0b971b
+      MAILERSEND_FROM_EMAIL: info@test-r6ke4n1jjpegon12.mlsender.net
+      MAILERSEND_FROM_NAME: Galerija
     ports:
       - "8000:8000"
     depends_on:
